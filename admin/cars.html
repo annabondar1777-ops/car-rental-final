@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Auto</title>
+<link rel="stylesheet" href="assets/css/admin.css">
+</head>
+<body>
+<header class="header">
+  <div class="brand"><img src="assets/img/logo.png" alt="Logo"></div>
+  <nav class="nav"><div id="lang-switch" class="row"><button class="btn" data-lang="ru">RU</button><button class="btn" data-lang="ro">RO</button><button class="btn" data-lang="en">EN</button></div>
+    <button class="btn tab-btn" data-tab="cars">Автомобили</button>
+    <button class="btn tab-btn" data-tab="crm">CRM</button>
+    <button class="btn tab-btn" data-tab="booking">Календарь</button>
+    <button class="btn tab-btn" data-tab="settings">Настройки</button>
+    <button class="btn tab-btn" data-tab="notify">Уведомления</button>
+  </nav>
+</header>
+<main>
+
+<section id="tab-cars" class="tab active">
+  <form id="car-form" class="card">
+    <div class="grid2">
+      <div>
+        <label>Название<input name="name" placeholder="Название"></label>
+<label>Описание<textarea name="description" rows="3" placeholder="Описание авто"></textarea></label>
+<label>Год <input name="year" placeholder="2021"></label>
+
+        <label>КПП <input name="transmission" placeholder="Automat / Manual"></label>
+        <label>Топливо <input name="fuel" placeholder="Benzină / Diesel"></label>
+        <label>Цена/сутки <input name="price_per_day" placeholder="100"></label>
+        <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="bookable" checked> Участвует в календаре</label>
+      </div>
+      <div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <input id="file-input" type="file" accept="image/*" multiple capture="environment" style="display:none">
+          <button class="btn" type="button" id="btn-pick">Выбрать фото</button>
+          <button class="btn" type="button" id="btn-upload">Загрузить в сайт</button>
+          <span class="muted" id="upload-msg"></span>
+        </div>
+        <label>Фото (URL, по одной в строке)
+          <textarea id="car-images" name="images" rows="8" placeholder="https://...jpg"></textarea>
+        </label>
+        <div id="images-preview" class="grid-img"></div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn" id="car-add" type="button">Новая запись</button>
+      <button class="btn primary" id="car-save" type="submit">Сохранить</button>
+    </div>
+  </form>
+  <div class="card">
+    <div class="row space">
+      <h3>Список автомобилей</h3>
+      <div id="publish_status" class="muted"></div>
+    </div>
+    <table class="table">
+      <thead><tr><th>Название</th><th>Год</th><th>КПП</th><th>Топливо</th><th>Цена</th><th>Статус</th><th></th></tr></thead>
+      <tbody id="cars-list"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="tab-crm" class="tab">
+  <div class="card">
+    <h3>CRM — Заявка клиента</h3>
+    <form id="crm-form">
+      <div class="grid2">
+        <div>
+          <label>Имя<input name="name" placeholder="Иван Иванов"></label>
+          <label>Телефон<input name="phone" placeholder="+373 ..."></label>
+          <label>Email<input name="email" placeholder="client@example.com"></label>
+          <label>Автомобиль<input name="car" placeholder="BMW X5"></label>
+        </div>
+        <div>
+          <label>Дата с<input name="date_from" type="date"></label>
+          <label>Дата по<input name="date_to" type="date"></label>
+          <label>Комментарий<textarea name="comment" rows="4" placeholder="Пожелания клиента"></textarea></label>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="submit">Сохранить заявку</button>
+        <span class="muted" id="crm-status"></span>
+      </div>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Заявки</h3>
+    <table class="table"><thead>
+      <tr><th>Имя</th><th>Телефон</th><th>Email</th><th>Авто</th><th>Период</th><th>Комментарий</th></tr>
+    </thead><tbody id="crm-list"></tbody></table>
+  </div>
+</section>
+
+<section id="tab-booking" class="tab">
+  <div class="card">
+    <h3>Календарь занятости</h3>
+    <div class="row">
+      <label>Авто<input id="bk-car" placeholder="Название или ID"></label>
+      <label>Дата с<input id="bk-from" type="date"></label>
+      <label>Дата по<input id="bk-to" type="date"></label>
+      <button class="btn primary" id="bk-add" type="button">Отметить занято</button>
+      <span class="muted" id="bk-status"></span>
+    </div>
+    <div id="calendar"></div>
+  </div>
+</section>
+
+<section id="tab-settings" class="tab">
+  <div class="card">
+    <h3>Настройки сайта</h3>
+    <form id="settings-form">
+      <div class="grid2">
+        <div>
+          <label>Бренд<input name="brand" placeholder="Auto Rent"></label>
+          <label>Слоган (RO)<input name="slogan_ro" placeholder="chirii auto"></label>
+          <label>Слоган (RU)<input name="slogan_ru" placeholder="прокат авто"></label>
+          <label>Слоган (EN)<input name="slogan_en" placeholder="car rental"></label>
+        </div>
+        <div>
+          <label>Телефон основной<input name="phone_main" placeholder="+373 ..."></label>
+          <label>Телефон доп.<input name="phone_alt" placeholder="+373 ..."></label>
+          <label>Instagram<input name="instagram_link" placeholder="https://instagram.com/..."></label>
+          <label>WhatsApp<input name="whatsapp_link" placeholder="https://wa.me/373..."></label>
+          <label>Telegram<input name="telegram_link" placeholder="https://t.me/..."></label>
+          <label>Viber<input name="viber_link" placeholder="viber://chat?number=+373..."></label>
+          <label>Email<input name="email" placeholder="info@example.com"></label>
+          <label>Адрес<input name="address" placeholder="str. ..."></label>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="settings-save" type="submit">Сохранить настройки</button>
+        <span class="muted" id="settings-status"></span>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section id="tab-notify" class="tab">
+  <div class="card">
+    <h3>Уведомления</h3>
+    <form id="notify-form">
+      <div class="grid2">
+        <div>
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" name="email_enabled" checked> Отправлять на email
+          </label>
+          <label>Email для уведомлений
+            <input name="email_to" placeholder="you@example.com" value="paulacerniciuc@gmail.com">
+          </label>
+        </div>
+        <div class="muted">
+          Письма приходят при новых заявках и бронях. 
+          На Netlify добавьте переменные поставщика (например, SendGrid): SENDGRID_API_KEY, EMAIL_FROM, EMAIL_TO.
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn primary" type="submit">Сохранить уведомления</button>
+        <span class="muted" id="notify-status"></span>
+      </div>
+    </form>
+  </div>
+</section>
+
+</main>
+<script src="assets/js/admin.js"></script>
+</body></html>

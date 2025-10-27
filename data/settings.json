@@ -1,0 +1,22 @@
+{
+  "brand": "",
+  "slogan": {
+    "ro": "",
+    "ru": "",
+    "en": ""
+  },
+  "phones": {
+    "main": "",
+    "alt": ""
+  },
+  "messengers": {
+    "whatsapp_link": "",
+    "telegram_link": "",
+    "viber_link": "",
+    "instagram_link": ""
+  },
+  "notifications": {
+    "email_enabled": true,
+    "email_to": "paulacerniciuc@gmail.com"
+  }
+}
