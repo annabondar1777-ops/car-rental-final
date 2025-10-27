@@ -1,27 +1,130 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title data-i18n="fleet">Parc auto</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Parcul Auto</title>
   <link rel="stylesheet" href="assets/css/style.css">
-  <script defer src="assets/js/i18n.js"></script>
+  <script defer src="assets/js/lang.js"></script>
+  <style>
+    body {
+      background: #0a0f1a;
+      color: #fff;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #111;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #00ff99;
+    }
+    .logo-left img {
+      height: 40px;
+    }
+    nav button {
+      background: transparent;
+      color: #00ff99;
+      border: 1px solid #00ff99;
+      margin-left: 10px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background: #00ff99;
+      color: #000;
+    }
+    .container {
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .car-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+      margin-top: 30px;
+    }
+    .car-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(0,255,153,0.4);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      box-shadow: 0 0 10px rgba(0,255,153,0.3);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .car-card:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 18px rgba(0,255,153,0.6);
+    }
+    .car-card img {
+      width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    .car-card h3 {
+      color: #00ff99;
+      margin-bottom: 10px;
+    }
+    footer {
+      margin-top: 50px;
+      padding: 20px;
+      border-top: 1px solid #00ff99;
+      text-align: center;
+      font-size: 14px;
+      opacity: 0.7;
+    }
+  </style>
 </head>
 <body>
-<header>
-  <div class="container">
+  <header>
+    <div class="logo-left">
+      <img src="assets/img/logo.png" alt="Logo">
+    </div>
     <nav>
-      <div class="logo-left">
-        <img src="assets/img/logo.png" alt="logo small">
-      </div>
-      <div class="langs"><button data-lang="ro">RO</button><button data-lang="ru">RU</button><button data-lang="en">EN</button></div>
+      <button data-lang="ro">RO</button>
+      <button data-lang="ru">RU</button>
+      <button data-lang="en">EN</button>
     </nav>
+  </header>
+
+  <div class="container">
+    <h1>Parcul Auto</h1>
+    <p>Autoturisme disponibile pentru închiriere chiar acum</p>
+    <div id="car-list" class="car-list"></div>
   </div>
-</header>
-<main class="container" style="padding:24px 0">
-  <h1 data-i18n="fleet">Parc auto</h1>
-  <p style="opacity:.8">Autovehiculele vor fi adăugate din panoul de administrare.</p>
-</main>
-<script src="assets/js/secret_admin.js"></script>
+
+  <footer>
+    © 2025 Auto Rent Chisinau | Toate drepturile rezervate
+  </footer>
+
+  <script>
+    async function loadCars() {
+      try {
+        const response = await fetch('data/cars.json');
+        const data = await response.json();
+        const carList = document.getElementById('car-list');
+
+        carList.innerHTML = data.cars.map(car => `
+          <div class="car-card">
+            <h3>${car.name}</h3>
+            <p>${car.description}</p>
+            <p><b>Anul:</b> ${car.year}</p>
+            <p><b>Cutie:</b> ${car.transmission}</p>
+            <p><b>Combustibil:</b> ${car.fuel}</p>
+            <p><b>Preț:</b> ${car.price_per_day} €/zi</p>
+            ${car.images.map(img => `<img src="${img}" alt="${car.name}">`).join('')}
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error('Eroare la încărcarea mașinilor:', err);
+      }
+    }
+    loadCars();
+  </script>
 </body>
 </html>
