@@ -1,12 +1,12 @@
 {
   "cars": [
     {
-      "id": "id_avs2e26",
+      "id": "id_1jrlpsh",
       "name": {
         "ru": "BMW X5"
       },
       "description": {
-        "ru": "4-10 days = 95 euro"
+        "ru": ""
       },
       "year": "1018",
       "transmission": "automat",
@@ -15,9 +15,9 @@
       "bookable": true,
       "published": true,
       "images": [
-        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761638567936_3a238a18-3ae7-4ffa-94d1-85323e00a65f.jpeg",
-        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761638577412_IMG_8956.jpeg",
-        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761638578169_IMG_8966.jpeg"
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761642957968_IMG_8956.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761642958750_IMG_8966.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761642966421_3a238a18-3ae7-4ffa-94d1-85323e00a65f.jpeg"
       ]
     }
   ]
