@@ -1,19 +1,15 @@
-const { getStore } = require('@netlify/blobs');
+import { sql } from "./_db.js";
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST')
-    return { statusCode: 405, headers:{'Access-Control-Allow-Origin':'*'}, body: 'Method not allowed' };
+export const handler = async (event) => {
+  if (event.httpMethod !== "POST")
+    return { statusCode: 405, body: "Method not allowed" };
 
   try {
-    const { id } = JSON.parse(event.body || '{}');
-    if (!id) return { statusCode: 400, headers:{'Access-Control-Allow-Origin':'*'}, body: 'id required' };
-
-    const store = getStore({ name: 'calendar' });
-    const data  = (await store.get('bookings', { type: 'json' })) || { bookings: [] };
-    await store.set('bookings', { bookings: data.bookings.filter(b => b.id !== id) }, { type: 'json' });
-
-    return { statusCode: 200, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true }) };
+    const { id } = JSON.parse(event.body || "{}");
+    if (!id) return { statusCode: 400, body: "id required" };
+    await sql`DELETE FROM bookings WHERE id=${id}`;
+    return { statusCode: 200, body: JSON.stringify({ ok:true }) };
   } catch (e) {
-    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
+    return { statusCode: 500, body: JSON.stringify({ ok:false, error: e.message }) };
   }
 };

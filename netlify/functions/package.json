@@ -1,6 +1,6 @@
 {
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
-    "@netlify/blobs": "1.3.0"
+    "@neondatabase/serverless": "^0.10.4"
   }
 }

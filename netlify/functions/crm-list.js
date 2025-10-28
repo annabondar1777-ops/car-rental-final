@@ -1,11 +1,10 @@
-const { getStore } = require('@netlify/blobs');
+import { sql } from "./_db.js";
 
-exports.handler = async () => {
+export const handler = async () => {
   try {
-    const store = getStore({ name: 'crm' });
-    const data = (await store.get('clients', { type: 'json' })) || { clients: [] };
-    return { statusCode: 200, headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true, ...data }) };
+    const rows = await sql`SELECT * FROM clients ORDER BY id DESC`;
+    return { statusCode: 200, body: JSON.stringify({ clients: rows }) };
   } catch (e) {
-    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
+    return { statusCode: 500, body: JSON.stringify({ ok:false, error: e.message }) };
   }
 };

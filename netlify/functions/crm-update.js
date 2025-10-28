@@ -1,43 +1,28 @@
-const { store } = require("./_helpers");
+import { sql } from "./_db.js";
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
+  if (event.httpMethod !== "POST")
+    return { statusCode: 405, body: "Method not allowed" };
+
   try {
-    const data = JSON.parse(event.body || "{}");
-    const id = data.id;
+    const { id, status, name, phone, email, car, date_from, date_to, comment } = JSON.parse(event.body || "{}");
+    if (!id) return { statusCode: 400, body: "id required" };
 
-    if (!id) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Missing ID" })
-      };
-    }
+    await sql`
+      UPDATE clients SET
+        status = COALESCE(${status}, status),
+        name = COALESCE(${name}, name),
+        phone = COALESCE(${phone}, phone),
+        email = COALESCE(${email}, email),
+        car = COALESCE(${car}, car),
+        date_from = COALESCE(${date_from}, date_from),
+        date_to = COALESCE(${date_to}, date_to),
+        comment = COALESCE(${comment}, comment)
+      WHERE id=${id}
+    `;
 
-    const db = await store.get("clients", { type: "json" });
-    const clients = db?.clients || [];
-
-    const index = clients.findIndex(c => c.id === id);
-    if (index === -1) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({ error: "Not found" })
-      };
-    }
-
-    clients[index] = { ...clients[index], ...data };
-
-    await store.set("clients", { clients }, { type: "json" });
-
-    return {
-      statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ ok: true, updated: clients[index] })
-    };
-
-  } catch (error) {
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ error: error.message })
-    };
+    return { statusCode: 200, body: JSON.stringify({ ok:true }) };
+  } catch (e) {
+    return { statusCode: 500, body: JSON.stringify({ ok:false, error: e.message }) };
   }
 };
