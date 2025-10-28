@@ -1,11 +1,9 @@
 {
   "name": "car-rental-final",
-  "version": "1.0.0",
+  "private": true,
   "type": "module",
-  "scripts": {
-    "build": "echo \"No build\""
-  },
   "dependencies": {
-    "@neondatabase/serverless": "^1.7.0"
+    "@neondatabase/serverless": "^0.10.4"
   }
 }
+
