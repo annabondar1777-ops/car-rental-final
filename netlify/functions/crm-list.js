@@ -1,20 +1,19 @@
-import { neon } from "@neondatabase/serverless";
-const sql = neon(process.env.NETLIFY_DATABASE_URL);
+import { sql, ok, err, preflight, bad } from "./_db.mjs";
 
-export const handler = async () => {
+export async function handler(event) {
+  const pf = preflight(event); if (pf) return pf;
+  if (event.httpMethod !== "GET") return bad(405, "Method not allowed");
+
   try {
-    const clients = await sql`SELECT * FROM clients ORDER BY id DESC`;
-    return {
-      statusCode: 200,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ ok: true, clients }),
-    };
-  } catch (e) {
-    return {
-      statusCode: 500,
-      headers: { "Access-Control-Allow-Origin": "*" },
-      body: JSON.stringify({ ok: false, error: e.message }),
-    };
-  }
-};
-
+    const q = (event.queryStringParameters?.q || "").trim();
+    const rows = q
+      ? await sql`
+          SELECT * FROM clients
+           WHERE name  ILIKE ${'%' + q + '%'}
+              OR phone ILIKE ${'%' + q + '%'}
+           ORDER BY id DESC
+        `
+      : await sql`SELECT * FROM clients ORDER BY id DESC`;
+    return ok({ clients: rows });
+  } catch (e) { return err(e); }
+}

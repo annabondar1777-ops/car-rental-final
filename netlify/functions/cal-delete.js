@@ -1,15 +1,13 @@
-import { sql } from "./_db.js";
+import { sql, ok, bad, err, preflight } from "./_db.mjs";
 
-export const handler = async (event) => {
-  if (event.httpMethod !== "POST")
-    return { statusCode: 405, body: "Method not allowed" };
+export async function handler(event) {
+  const pf = preflight(event); if (pf) return pf;
+  if (event.httpMethod !== "POST") return bad(405, "Method not allowed");
 
   try {
     const { id } = JSON.parse(event.body || "{}");
-    if (!id) return { statusCode: 400, body: "id required" };
+    if (!id) return bad(400, "id required");
     await sql`DELETE FROM bookings WHERE id=${id}`;
-    return { statusCode: 200, body: JSON.stringify({ ok:true }) };
-  } catch (e) {
-    return { statusCode: 500, body: JSON.stringify({ ok:false, error: e.message }) };
-  }
-};
+    return ok({ id });
+  } catch (e) { return err(e); }
+}

@@ -1,23 +1,25 @@
-const { getStore } = require('@netlify/blobs');
+import { sql, ok, bad, err, preflight } from "./_db.mjs";
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST')
-    return { statusCode: 405, headers:{'Access-Control-Allow-Origin':'*'}, body: 'Method not allowed' };
+export async function handler(event) {
+  const pf = preflight(event); if (pf) return pf;
+  if (event.httpMethod !== "POST") return bad(405, "Method not allowed");
 
   try {
-    const body = JSON.parse(event.body || '{}');
-    if (!body.id) body.id = Date.now().toString(36) + '-' + (body.car_id || 'x');
+    const b = JSON.parse(event.body || "{}");
+    const id = Number(b.id);
+    if (!id) return bad(400, "id required");
 
-    const store = getStore({ name: 'calendar' });
-    const data  = (await store.get('bookings', { type: 'json' })) || { bookings: [] };
+    const fields = ["name","phone","email","car","date_from","date_to","comment","status"];
+    const keys = fields.filter(k => k in b);
+    if (!keys.length) return bad(400, "nothing to update");
 
-    const i = data.bookings.findIndex(b => b.id === body.id);
-    if (i === -1) data.bookings.push(body); else data.bookings[i] = { ...data.bookings[i], ...body };
+    const setSql = keys.map((k,i) => `${k} = $${i+1}`).join(", ");
+    const values = keys.map(k => b[k]);
 
-    await store.set('bookings', data, { type: 'json' });
-
-    return { statusCode: 200, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true, id: body.id }) };
-  } catch (e) {
-    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
-  }
-};
+    const rows = await sql(
+      `UPDATE clients SET ${setSql} WHERE id = $${keys.length+1} RETURNING *`,
+      [...values, id]
+    );
+    return ok({ client: rows[0] });
+  } catch (e) { return err(e); }
+}
