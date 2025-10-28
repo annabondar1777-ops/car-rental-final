@@ -1,0 +1,10 @@
+{
+  "name": "car-rental-final",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo \"No build\""
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.10"
+  }
+}
