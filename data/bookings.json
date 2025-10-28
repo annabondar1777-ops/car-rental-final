@@ -1,1 +1,10 @@
-{"bookings":[]}
+{
+  "bookings": [
+    {
+      "car": "bmw x5",
+      "date_from": "2025-03-11",
+      "date_to": "2025-06-11",
+      "created_at": "2025-10-28T05:58:10.137Z"
+    }
+  ]
+}
