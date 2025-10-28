@@ -1,18 +1,23 @@
-import { sql } from "./_db.js";
+// netlify/functions/save-client.js
+import { sql, ok, bad, err, preflight } from './db.js';
 
-export const handler = async (event) => {
-  if (event.httpMethod !== "POST")
-    return { statusCode: 405, body: "Method not allowed" };
+export async function handler(event) {
+  if (event.httpMethod === 'OPTIONS') return preflight();
+  if (event.httpMethod !== 'POST')    return bad(405, 'Method not allowed');
 
   try {
-    const c = JSON.parse(event.body || "{}");
+    const b = JSON.parse(event.body || '{}');
+
+    // минимально требуемые поля
+    if (!b.name || !b.phone) return bad(400, 'name and phone required');
+
     const rows = await sql`
       INSERT INTO clients (name, phone, email, car, date_from, date_to, comment, status)
-      VALUES (${c.name}, ${c.phone}, ${c.email}, ${c.car}, ${c.date_from}, ${c.date_to}, ${c.comment}, 'new')
-      RETURNING id
+      VALUES (${b.name || ''}, ${b.phone || ''}, ${b.email || ''}, ${b.car || ''},
+              ${b.date_from || null}, ${b.date_to || null}, ${b.comment || ''},
+              ${b.status || 'new'})
+      RETURNING *;
     `;
-    return { statusCode: 200, body: JSON.stringify({ ok:true, id: rows[0]?.id }) };
-  } catch (e) {
-    return { statusCode: 500, body: JSON.stringify({ ok:false, error: e.message }) };
-  }
-};
+    return ok({ client: rows[0] });
+  } catch (e) { return err(e); }
+}

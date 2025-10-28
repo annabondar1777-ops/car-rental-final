@@ -1,14 +1,11 @@
-// netlify/functions/_db.js
-import { neon } from "@neondatabase/serverless";
+// netlify/functions/db.js
+import { neon } from '@neondatabase/serverless';
 
-// Netlify Neon кладёт URI в эти переменные окружения.
-// Если у тебя есть UNPOOLED — используем его, иначе pooled.
-const url =
-  process.env.NETLIFY_DATABASE_URL_UNPOOLED || process.env.NETLIFY_DATABASE_URL;
+export const sql = neon(process.env.NETLIFY_DATABASE_URL);
 
-if (!url) {
-  throw new Error("NETLIFY_DATABASE_URL(_UNPOOLED) not set");
-}
-
-// Единый экспорт для всех функций
-export const sql = neon(url);
+// удобные ответы + CORS
+const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type' };
+export const ok  = (data = {}) => ({ statusCode: 200, headers: cors, body: JSON.stringify({ ok: true, ...data }) });
+export const bad = (code = 400, msg = 'Bad request') => ({ statusCode: code, headers: cors, body: JSON.stringify({ ok: false, error: msg }) });
+export const err = (e) => ({ statusCode: 500, headers: cors, body: JSON.stringify({ ok: false, error: e?.message || String(e) }) });
+export const preflight = () => ({ statusCode: 200, headers: cors, body: '' });
