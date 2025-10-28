@@ -39,6 +39,26 @@
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761640553568_IMG_8956.jpeg",
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761640554194_IMG_8966.jpeg"
       ]
+    },
+    {
+      "id": "id_qft3q1r",
+      "name": {
+        "ru": "bmw"
+      },
+      "description": {
+        "ru": ""
+      },
+      "year": "1018",
+      "transmission": "automat",
+      "fuel": "diesel",
+      "price_per_day": "100",
+      "bookable": true,
+      "published": true,
+      "images": [
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761640626972_3a238a18-3ae7-4ffa-94d1-85323e00a65f.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761640627604_IMG_8956.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761640628450_IMG_8966.jpeg"
+      ]
     }
   ]
 }
