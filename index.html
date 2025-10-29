@@ -20,7 +20,7 @@
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn" onclick="location.href='contacts.html'" onclick="location.href='contacts.html'" data-i18n="contact">Contacte</button>
+        <button class="btn" onclick="location.href='contacts.html'" data-i18n="contact">Contacte</button>
         <button class="btn" onclick="location.href='conditions.html'" data-i18n="conditions">Condiții</button>
         <div class="langs">
           <button data-lang="ro">RO</button>
@@ -38,16 +38,14 @@
     <div class="brand" data-i18n="brand">Auto Rent Chișinău</div>
     <div class="slogan" data-i18n="slogan">Încredere la fiecare kilometru.</div>
     <div class="actions">
-      <button class="btn" data-i18n="request_call">Solicită apel</button>
-
+      <!-- Открываем модалку звонка -->
+      <button class="btn" id="cb-open" data-i18n="request_call">Solicită apel</button>
       <button class="btn btn-primary btn-cta" onclick="goFleet()" data-i18n="park_btn">Parcul nostru</button>
-<!-- No 'Call' button per your request -->
     </div>
   </div>
 </section>
 
 <footer class="container">
-  <!-- CRM text intentionally omitted -->
   <div style="opacity:.8">© 2025 Auto Rent Chișinău — <span data-i18n="slogan">Încredere la fiecare kilometru.</span></div>
 </footer>
 
@@ -63,19 +61,93 @@
       <label>Телефон / Telefon
         <input type="tel" name="phone" placeholder="+373 60 922 323" required>
       </label>
-      <label>Комментарий / Comentariu
-        <textarea name="note" rows="3"></textarea>
+      <label>Email
+        <input type="email" name="email" placeholder="example@mail.com">
       </label>
+      <label>Комментарий / Comentariu
+        <textarea name="comment" rows="3"></textarea>
+      </label>
+
+      <!-- Сквозные поля для совместимости с CRM -->
+      <input type="hidden" name="car" value="">
+      <input type="hidden" name="date_from" value="">
+      <input type="hidden" name="date_to" value="">
+      <input type="hidden" name="status" value="new">
+
       <div class="cb-actions">
         <button type="button" class="btn" id="cb-cancel" data-i18n="back">Назад</button>
         <button type="submit" class="btn btn-primary" data-i18n="request_call">Заказать звонок</button>
       </div>
       <p class="cb-hint">Мы свяжемся в течение 10–15 минут.</p>
+      <p id="cb-msg" class="cb-hint" style="opacity:.9"></p>
     </form>
   </div>
 </div>
 
 <script src="assets/js/secret_admin.js"></script>
 <script src="assets/js/site_settings.js"></script>
+
+<!-- ==== ДОБАВЛЕНО: логика модалки + отправка в Netlify Function (CRM) ==== -->
+<script>
+(function(){
+  const modal = document.getElementById('cb-modal');
+  const btnOpen = document.getElementById('cb-open');
+  const btnClose = modal?.querySelector('.cb-x');
+  const btnCancel = document.getElementById('cb-cancel');
+  const form = document.getElementById('cb-form');
+  const msg = document.getElementById('cb-msg');
+
+  function openModal(){ modal?.removeAttribute('hidden'); document.body.style.overflow='hidden'; }
+  function closeModal(){ modal?.setAttribute('hidden',''); document.body.style.overflow=''; msg.textContent=''; }
+
+  btnOpen?.addEventListener('click', openModal);
+  btnClose?.addEventListener('click', closeModal);
+  btnCancel?.addEventListener('click', closeModal);
+  modal?.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
+
+  async function sendLead(e){
+    e.preventDefault();
+    const payload = {
+      id: '', // создастся в функции
+      name: form.name.value.trim(),
+      phone: form.phone.value.trim(),
+      email: (form.email?.value || '').trim(),
+      car: (form.car?.value || '').trim(),
+      date_from: (form.date_from?.value || '').trim(),
+      date_to: (form.date_to?.value || '').trim(),
+      status: (form.status?.value || 'new'),
+      comment: (form.comment?.value || '').trim()
+    };
+
+    if(!payload.name || !payload.phone){
+      msg.textContent = 'Укажите имя и телефон.';
+      return;
+    }
+
+    msg.textContent = 'Отправляем...';
+
+    try{
+      const r = await fetch('/.netlify/functions/crm-update', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      const j = await r.json().catch(()=>({ ok:false }));
+
+      if(r.ok && j.ok){
+        msg.textContent = 'Заявка отправлена! Спасибо.';
+        form.reset();
+        setTimeout(closeModal, 800);
+      }else{
+        msg.textContent = 'Не удалось отправить. Попробуйте позже.';
+      }
+    }catch(err){
+      msg.textContent = 'Сеть недоступна. Попробуйте позже.';
+    }
+  }
+
+  form?.addEventListener('submit', sendLead);
+})();
+</script>
 </body>
 </html>
