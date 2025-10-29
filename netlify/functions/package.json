@@ -1,8 +1,15 @@
 {
   "name": "car-rental-final",
   "version": "1.0.0",
-  "private": true,
+  "description": "Car Rental Website with Admin Panel",
+  "main": "index.js",
   "scripts": {
-    "build": "echo \"no build step\""
+    "start": "netlify dev",
+    "build": "",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^6.2.0",
+    "node-fetch": "^3.3.2"
   }
 }
