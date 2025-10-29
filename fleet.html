@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Parcul Auto</title>
+
+<link rel="stylesheet" href="assets/css/style.css" />
+<script defer src="assets/js/lang.js"></script>
+
+<style>
+:root{
+  --bg:#081428; --text:#f4f7ff; --primary:#00e5ff;
+  --border:rgba(255,255,255,.14); --panel:#0f1d3d;
+}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+header{
+  background:#0c1734;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:2px solid var(--primary);box-shadow:0 0 24px rgba(0,229,255,.35) inset;position:sticky;top:0;z-index:5
+}
+.logo-left img{height:40px;filter:drop-shadow(0 0 10px rgba(0,229,255,.35))}
+nav button{background:transparent;border:1px solid var(--primary);color:var(--text);margin-left:10px;padding:6px 14px;border-radius:8px;cursor:pointer}
+nav button:hover{background:var(--primary);color:#001329}
+
+.container{max-width:1180px;margin:0 auto;padding:24px 16px;text-align:center}
+.car-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:26px;margin-top:26px}
+
+.car-card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.car-card:hover{border-color:var(--primary);box-shadow:0 12px 32px rgba(0,0,0,.5)}
+.thumb{padding-top:58%;background-size:cover;background-position:center;width:100%}
+.gallery{display:flex;gap:6px;margin:10px 0;justify-content:center}
+.gallery img{width:80px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid rgba(255,255,255,.25)}
+.gallery img:hover{opacity:.85;border-color:var(--primary)}
+.card-body{padding:18px 18px}
+.car-card h3{margin:6px 0 12px;font-size:1.4rem;text-shadow:0 0 10px rgba(0,229,255,.25)}
+.car-card p{margin:3px 0}
+
+.price{font-weight:700;font-size:1.25rem;color:var(--primary);margin-top:6px;text-shadow:0 0 14px rgba(0,229,255,.45)}
+.btn{display:inline-block;cursor:pointer;border-radius:10px;padding:10px 14px;border:1px solid var(--primary);color:var(--text);background:transparent;font-weight:600}
+.btn.primary{background:var(--primary);color:#001329;border-color:var(--primary)}
+.btn.primary:hover{filter:brightness(1.07)}
+.actions{text-align:center;margin-top:6px}
+
+/* Модалка */
+.modal[hidden]{display:none}
+.modal{position:fixed;inset:0;z-index:50}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
+.modal-card{
+  position:relative;max-width:520px;margin:8vh auto 0;background:var(--panel);
+  border:1px solid var(--border);border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.55);padding:18px 16px 16px;color:var(--text)
+}
+.modal-x{position:absolute;right:10px;top:8px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:8px;cursor:pointer;width:32px;height:32px}
+.form label{display:block;margin:8px 0}
+.form input,.form textarea{width:100%;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text);padding:10px 12px}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="logo-left"><img src="assets/img/logo.png" alt="Logo"></div>
+  <nav>
+    <button data-lang="ro">RO</button>
+    <button data-lang="ru">RU</button>
+    <button data-lang="en">EN</button>
+  </nav>
+</header>
+
+<div class="container">
+  <h1 data-i18n="title">Parcul Auto</h1>
+  <p class="sub" data-i18n="subtitle">Autoturisme disponibile pentru închiriere chiar acum</p>
+  <div id="car-list" class="car-list"></div>
+</div>
+
+<footer>© 2025 Auto Rent Chișinău • Toate drepturile rezervate</footer>
+
+<!-- Модальное бронирование -->
+<div id="booking-modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close="1"></div>
+  <div class="modal-card">
+    <button class="modal-x" data-close="1">×</button>
+    <h3 data-i18n="book_title">Rezervare</h3>
+    <p class="muted" id="bm-car"></p>
+
+    <form id="booking-form" class="form">
+      <input type="hidden" name="car_id" id="bm-car-id">
+      <input type="hidden" name="car" id="bm-car-name">
+
+      <label><span data-i18n="f_name">Nume</span><input name="name" required></label>
+      <label><span data-i18n="f_phone">Telefon</span><input name="phone" required></label>
+      <label><span data-i18n="f_from">Data start</span><input name="date_from" type="date" required></label>
+      <label><span data-i18n="f_to">Data sfârșit</span><input name="date_to" type="date" required></label>
+      <label><span data-i18n="f_comment">Comentariu</span><textarea name="comment" rows="3"></textarea></label>
+
+      <div class="actions">
+        <button type="button" class="btn" data-close="1" data-i18n="btn_cancel">Anulează</button>
+        <button type="submit" class="btn primary" data-i18n="btn_send">Trimite</button>
+      </div>
+      <div id="bm-status" class="muted" style="margin-top:8px"></div>
+    </form>
+  </div>
+</div>
+
+<script>
+/* I18N */
+const I18N = {
+  ro:{ title:"Parcul Auto", subtitle:"Autoturisme disponibile pentru închiriere chiar acum",
+       year:"Anul", gearbox:"Cutie", fuel:"Combustibil", price:"Preț", per_day:"€/zi",
+       book:"Rezervă", consumption:"Consum", city:"oraș", hwy:"șosea",
+       empty:"Nu sunt mașini disponibile momentan.", load_error:"Nu s-a putut încărca parcul auto.",
+       book_title:"Rezervare", f_name:"Nume", f_phone:"Telefon", f_from:"Data start", f_to:"Data sfârșit",
+       f_comment:"Comentariu", btn_cancel:"Anulează", btn_send:"Trimite", saved:"Salvat!", err:"Eroare" },
+  ru:{ title:"Автопарк", subtitle:"Автомобили доступны к аренде прямо сейчас",
+       year:"Год", gearbox:"КПП", fuel:"Топливо", price:"Цена", per_day:"€/сут",
+       book:"Забронировать", consumption:"Расход", city:"город", hwy:"трасса",
+       empty:"Сейчас нет доступных автомобилей.", load_error:"Не удалось загрузить автопарк.",
+       book_title:"Бронирование", f_name:"Имя", f_phone:"Телефон", f_from:"Дата начала", f_to:"Дата окончания",
+       f_comment:"Комментарий", btn_cancel:"Отмена", btn_send:"Отправить", saved:"Сохранено!", err:"Ошибка отправки" },
+  en:{ title:"Car Fleet", subtitle:"Cars available for rent right now",
+       year:"Year", gearbox:"Transmission", fuel:"Fuel", price:"Price", per_day:"€/day",
+       book:"Reserve", consumption:"Consumption", city:"city", hwy:"highway",
+       empty:"No cars available at the moment.", load_error:"Could not load the fleet.",
+       book_title:"Reservation", f_name:"Name", f_phone:"Phone", f_from:"Start date", f_to:"End date",
+       f_comment:"Comment", btn_cancel:"Cancel", btn_send:"Send", saved:"Saved!", err:"Error" }
+};
+const LANG = (localStorage.getItem('lang') || document.documentElement.lang || 'ro').toLowerCase();
+const T = k => (I18N[LANG] && I18N[LANG][k]) || I18N.ro[k] || k;
+document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{localStorage.setItem('lang',b.dataset.lang);location.reload();});
+document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n'); if(k) el.textContent=T(k);});
+
+/* helpers */
+const safe=v=>v==null?'':String(v);
+const pick=o=>(o&&typeof o==='object')?Object.values(o)[0]:o;
+const firstImage=a=>Array.isArray(a)?(a.find(u=>u)||''):(a||'');
+
+// Расход: «город X • трасса Y l/100km» (поддерживает разные форматы в данных)
+function formatConsumption(c){
+  const cityLabel = T('city'), hwyLabel = T('hwy');
+  // отдельные поля
+  if (c.consumption_city || c.consumption_hwy) {
+    const city = safe(c.consumption_city||'?'); const hwy = safe(c.consumption_hwy||'?');
+    return `${T('consumption')}: ${cityLabel} ${city} • ${hwyLabel} ${hwy} l/100km`;
+  }
+  // объект {city,hwy}
+  if (c.consumption && typeof c.consumption==='object') {
+    const city = safe(c.consumption.city||'?'); const hwy = safe(c.consumption.hwy||'?');
+    return `${T('consumption')}: ${cityLabel} ${city} • ${hwyLabel} ${hwy} l/100km`;
+  }
+  // строка/число
+  if (c.consumption != null) {
+    const s = String(c.consumption).trim();
+    if (!s) return '';
+    // если одно число — считаем это общий (город)
+    if (!s.includes('/')) return `${T('consumption')}: ${cityLabel} ${s} l/100km`;
+    // если "7.5 / 5.8"
+    const [city,hwy] = s.split('/').map(x=>x.trim());
+    return `${T('consumption')}: ${cityLabel} ${city||'?'} • ${hwyLabel} ${hwy||'?'} l/100km`;
+  }
+  return '';
+}
+
+/* источники */
+const DATA_URL = 'data/cars.json';
+
+/* карточка: фото → мини-галерея → данные → цена → описание → кнопка */
+function cardHTML(c){
+  const title = pick(c.name) || '—';
+  const imgs = Array.isArray(c.images) ? c.images.filter(Boolean) : [];
+  const mainImg = imgs[0] || "";
+  const consumptionLine = formatConsumption(c);
+
+  return `
+  <article class="car-card" data-id="${safe(c.id)}">
+    <div class="thumb" style="${mainImg?`background-image:url('${mainImg}')`:''}"></div>
+
+    ${imgs.length>1 ? `
+      <div class="gallery">
+        ${imgs.slice(0,3).map(u=>`<img src="${u}" data-img="${u}" alt="${title}">`).join('')}
+      </div>
+    ` : ''}
+
+    <div class="card-body">
+      <h3>${title}</h3>
+      ${c.year ? `<p><b>${T('year')}:</b> ${safe(c.year)}</p>` : ''}
+      ${c.transmission ? `<p><b>${T('gearbox')}:</b> ${safe(c.transmission)}</p>` : ''}
+      ${c.fuel ? `<p><b>${T('fuel')}:</b> ${safe(c.fuel)}</p>` : ''}
+      ${consumptionLine ? `<p>${consumptionLine}</p>` : ''}
+
+      ${c.price_per_day ? `<div class="price">${safe(c.price_per_day)} ${T('per_day')}</div>` : ''}
+
+      ${c.description ? `<p style="margin-top:12px; opacity:.85">${safe(pick(c.description))}</p>` : ''}
+
+      <div class="actions">
+        <button class="btn primary book-btn" data-id="${safe(c.id)}" data-name="${title}">${T('book')}</button>
+      </div>
+    </div>
+  </article>`;
+}
+
+/* загрузка */
+async function loadCars(){
+  try{
+    const r = await fetch(DATA_URL+'?v='+Date.now(), {cache:'no-store'});
+    const j = await r.json();
+    const cars = Array.isArray(j?.cars) ? j.cars : [];
+    document.getElementById('car-list').innerHTML = cars.length
+      ? cars.map(cardHTML).join('')
+      : `<p style="opacity:.8">${T('empty')}</p>`;
+    bindBookButtons();
+  }catch(e){
+    console.error(e);
+    document.getElementById('car-list').innerHTML = `<p style="opacity:.8">${T('load_error')}</p>`;
+  }
+}
+loadCars();
+
+/* модалка */
+const modal = document.getElementById('booking-modal');
+document.querySelectorAll('[data-close]').forEach(el=> el.addEventListener('click', ()=> modal.hidden = true));
+
+function bindBookButtons(){
+  // клики по мини-галерее — смена главного фото
+  document.addEventListener("click",(e)=>{
+    const img = e.target?.dataset?.img; if(!img) return;
+    const card = e.target.closest(".car-card"); const main = card.querySelector(".thumb");
+    if(main) main.style.backgroundImage = `url('${img}')`;
+  });
+
+  // кнопки брони
+  document.querySelectorAll('.book-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      document.getElementById('bm-car-id').value = btn.dataset.id;
+      document.getElementById('bm-car-name').value = btn.dataset.name;
+      document.getElementById('bm-car').textContent = '• ' + btn.dataset.name;
+      modal.hidden=false;
+    };
+  });
+}
+
+/* отправка в функции */
+document.getElementById('booking-form').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const payload = Object.fromEntries(fd.entries());
+  payload.id = payload.id || (Date.now().toString(36)+'-'+(payload.car_id||''));
+  payload.status = payload.status || 'new';
+
+  const status = document.getElementById('bm-status');
+  e.target.querySelectorAll('button').forEach(b=>b.disabled=true);
+  status.textContent='...';
+
+  try{
+    await fetch('/.netlify/functions/save-client',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    await fetch('/.netlify/functions/save-booking',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    status.textContent=T('saved');
+    setTimeout(()=>{ modal.hidden=true; e.target.reset(); }, 900);
+  }catch(err){
+    console.error(err); status.textContent=T('err');
+  }finally{
+    e.target.querySelectorAll('button').forEach(b=>b.disabled=false);
+  }
+});
+</script>
+</body>
+</html>
