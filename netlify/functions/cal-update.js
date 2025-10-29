@@ -1,23 +1,49 @@
-const { getStore } = require('@netlify/blobs');
+// netlify/functions/cal-update.mjs
+import { getStore } from '@netlify/blobs';
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST')
-    return { statusCode: 405, headers:{'Access-Control-Allow-Origin':'*'}, body: 'Method not allowed' };
+const fetch = globalThis.fetch;
+const ok = (data = {}) => ({ statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, ...data }) });
+const bad = (code, msg) => ({ statusCode: code, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: false, error: msg }) });
 
+export const handler = async (event) => {
   try {
-    const body = JSON.parse(event.body || '{}');
-    if (!body.id) body.id = Date.now().toString(36) + '-' + (body.car_id || 'x');
+    if (event.httpMethod !== 'POST') return bad(405, 'Use POST');
 
-    const store = getStore({ name: 'calendar' });
-    const data  = (await store.get('bookings', { type: 'json' })) || { bookings: [] };
+    const { carId, name, phone, email, startDate, endDate, msg } = JSON.parse(event.body || '{}');
+    if (!carId || !startDate || !endDate) return bad(400, 'carId, startDate, endDate required');
 
-    const i = data.bookings.findIndex(b => b.id === body.id);
-    if (i === -1) data.bookings.push(body); else data.bookings[i] = { ...data.bookings[i], ...body };
+    // создаём lead (это запишет в CRM и отправит письмо)
+    const res = await fetch('/.netlify/functions/crm-create', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ carId, name, phone, email, startDate, endDate, msg, source: 'site' })
+    });
 
-    await store.set('bookings', data, { type: 'json' });
+    const j = await res.json();
+    if (!j.ok) return bad(500, j.error || 'crm-create failed');
+    const leadId = j.leadId;
 
-    return { statusCode: 200, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true, id: body.id }) };
+    // на всякий случай продублируем запись в календарь (если crm-create не сделал)
+    const cal = getStore('calendar');
+    const key = `bookings/${carId}.json`;
+    const bookings = (await cal.get(key, { type: 'json' })) || [];
+
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+    const overlap = bookings.some(b => !(new Date(b.end) < s || new Date(b.start) > e));
+    if (!overlap) {
+      bookings.push({
+        start: s.toISOString().slice(0, 10),
+        end: e.toISOString().slice(0, 10),
+        leadId,
+        createdAt: new Date().toISOString()
+      });
+      await cal.set(key, JSON.stringify(bookings), { metadata: { contentType: 'application/json' } });
+    }
+
+    return ok({ leadId, bookings });
   } catch (e) {
-    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
+    console.error(e);
+    return bad(500, e?.message || 'server error');
   }
 };
