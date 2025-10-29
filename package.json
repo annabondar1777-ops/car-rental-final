@@ -1,0 +1,9 @@
+{
+  "name": "car-rental-final",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@netlify/blobs": "^6.4.0",
+    "node-fetch": "^3.3.2"
+  }
+}
