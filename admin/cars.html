@@ -1,425 +1,230 @@
-
 <!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin — Auto</title>
-<link rel="stylesheet" href="assets/css/admin.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Автопарк — Auto Rent</title>
+
+  <!-- твои стили сайта -->
+  <link rel="stylesheet" href="assets/css/main.css">
+  <link rel="stylesheet" href="assets/css/typography.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+
+  <style>
+    /* Небольшие локальные стили для карточек и модалки */
+    .fleet-wrap{max-width:1200px;margin:0 auto;padding:24px}
+    .grid-cars{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+    .car{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;overflow:hidden}
+    .car .img{aspect-ratio:16/10;object-fit:cover;width:100%}
+    .car .body{padding:14px}
+    .row{display:flex;gap:10px;align-items:center}
+    .space{justify-content:space-between}
+    .muted{opacity:.8;font-size:.9rem}
+    .price{font-weight:700}
+    .btn{cursor:pointer;border:1px solid rgba(255,255,255,.2);background:transparent;padding:10px 14px;border-radius:10px}
+    .btn.primary{background:linear-gradient(90deg,#00d4ff,#0066ff);border-color:transparent;color:#fff}
+    .bad{color:#ff6a6a}
+    dialog{border:none;border-radius:16px;max-width:640px;width:92%;padding:0;background:rgba(10,18,35,.98);color:#fff}
+    dialog::backdrop{background:rgba(0,0,0,.45)}
+    .modal-head{padding:16px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+    .modal-body{padding:18px}
+    .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .modal-grid label{display:flex;flex-direction:column;gap:6px}
+    .modal-grid input,.modal-grid textarea{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:transparent;color:inherit}
+    .modal-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 18px;border-top:1px solid rgba(255,255,255,.08)}
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:.8rem;opacity:.9;border:1px dashed rgba(255,255,255,.25);padding:4px 8px;border-radius:999px}
+  </style>
 </head>
 <body>
-<header class="header">
-  <div class="brand"><img src="assets/img/logo.png" alt="Logo"></div>
-  <nav class="nav">
-    <div id="lang-switch" class="row">
-      <button class="btn" data-lang="ru">RU</button>
-      <button class="btn" data-lang="ro">RO</button>
-      <button class="btn" data-lang="en">EN</button>
-    </div>
-    <button class="btn tab-btn" data-tab="cars">Автомобили</button>
-    <button class="btn tab-btn" data-tab="crm">CRM</button>
-    <button class="btn tab-btn" data-tab="booking">Календарь</button>
-    <button class="btn tab-btn" data-tab="settings">Настройки</button>
-    <button class="btn tab-btn" data-tab="notify">Уведомления</button>
-  </nav>
+
+<header class="site-header">
+  <!-- твоя шапка (логотип/меню) если нужна — оставь как на остальных страницах -->
 </header>
 
-<main>
+<main class="fleet-wrap">
 
-<!-- ====================== CARS ====================== -->
-<section id="tab-cars" class="tab active">
-  <form id="car-form" class="card">
-    <div class="grid2">
+  <div class="row space" style="margin-bottom:16px">
+    <h1 style="margin:0">Автопарк</h1>
+    <div class="muted">Нажмите «Забронировать» у нужного авто</div>
+  </div>
+
+  <div id="cars" class="grid-cars" aria-live="polite"></div>
+
+  <!-- ======== Модалка бронирования ======== -->
+  <dialog id="bookModal">
+    <div class="modal-head row space">
       <div>
-        <label>Название<input name="name" placeholder="Название"></label>
-        <label>Описание<textarea name="description" rows="3" placeholder="Описание авто"></textarea></label>
-        <label>Год <input name="year" placeholder="2021"></label>
-        <label>КПП <input name="transmission" placeholder="Automat / Manual"></label>
-        <label>Топливо <input name="fuel" placeholder="Benzină / Diesel"></label>
-        <label>Цена/сутки <input name="price_per_day" placeholder="100"></label>
-        <label style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" name="bookable" checked> Участвует в календаре
+        <div class="muted" id="bm-car-name">Авто</div>
+        <div class="muted" id="bm-booked" style="margin-top:4px"></div>
+      </div>
+      <button class="btn" onclick="bookModal.close()">✕</button>
+    </div>
+
+    <form id="bookForm" class="modal-body" method="dialog">
+      <input type="hidden" name="car_id" id="bm-car-id">
+      <input type="hidden" name="car" id="bm-car-title">
+
+      <div class="modal-grid">
+        <label>Имя
+          <input name="name" required placeholder="Ваше имя">
+        </label>
+        <label>Телефон
+          <input name="phone" required placeholder="+373 ...">
+        </label>
+        <label>Email
+          <input name="email" type="email" placeholder="you@example.com">
+        </label>
+        <label>Дата начала
+          <input name="date_from" id="bm-date-from" type="date" required>
+        </label>
+        <label>Дата конца
+          <input name="date_to" id="bm-date-to" type="date" required>
+        </label>
+        <label style="grid-column:1/-1">Комментарий
+          <textarea name="comment" rows="3" placeholder="Пожелания/время подачи"></textarea>
         </label>
       </div>
-      <div>
-        <div class="row" style="gap:8px;flex-wrap:wrap">
-          <input id="file-input" type="file" accept="image/*" multiple capture="environment" style="display:none">
-          <button class="btn" type="button" id="btn-pick">Выбрать фото</button>
-          <button class="btn" type="button" id="btn-upload">Загрузить в сайт</button>
-          <span class="muted" id="upload-msg"></span>
-        </div>
-        <label>Фото (URL, по одной в строке)
-          <textarea id="car-images" name="images" rows="8" placeholder="https://...jpg"></textarea>
-        </label>
-        <div id="images-preview" class="grid-img"></div>
-      </div>
-    </div>
-    <div class="row">
-      <button class="btn" id="car-add" type="button">Новая запись</button>
-      <button class="btn primary" id="car-save" type="submit">Сохранить</button>
-    </div>
-  </form>
 
-  <div class="card">
-    <div class="row space">
-      <h3>Список автомобилей</h3>
-      <div id="publish_status" class="muted"></div>
-    </div>
-    <table class="table">
-      <thead>
-        <tr><th>Название</th><th>Год</th><th>КПП</th><th>Топливо</th><th>Цена</th><th>Статус</th><th></th></tr>
-      </thead>
-      <tbody id="cars-list"></tbody>
-    </table>
-  </div>
-</section>
+      <div class="badges" style="margin-top:12px">
+        <span class="badge">Бронь без предоплаты</span>
+        <span class="badge">Подтверждение в админке</span>
+      </div>
 
-<!-- ====================== CRM ====================== -->
-<section id="tab-crm" class="tab">
-  <div class="card">
-    <h3>CRM — Заявка клиента</h3>
-    <form id="crm-form">
-      <div class="grid2">
-        <div>
-          <label>Имя<input name="name" placeholder="Иван Иванов"></label>
-          <label>Телефон<input name="phone" placeholder="+373 ..."></label>
-          <label>Email<input name="email" placeholder="client@example.com"></label>
-          <label>Автомобиль<input name="car" placeholder="BMW X5"></label>
-        </div>
-        <div>
-          <label>Дата с<input name="date_from" type="date"></label>
-          <label>Дата по<input name="date_to" type="date"></label>
-          <label>Комментарий<textarea name="comment" rows="4" placeholder="Пожелания клиента"></textarea></label>
-        </div>
-      </div>
-      <div class="row">
-        <button class="btn primary" type="submit">Сохранить заявку</button>
-        <span class="muted" id="crm-status"></span>
-      </div>
+      <div id="bm-msg" class="muted" style="margin-top:10px"></div>
     </form>
-  </div>
 
-  <div class="card">
-    <div class="row space" style="gap:10px;flex-wrap:wrap">
-      <h3 style="margin:0">Заявки</h3>
-      <div class="row" style="gap:10px;flex-wrap:wrap">
-        <input id="crm-search" placeholder="Поиск: имя или телефон"
-               style="width:280px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:inherit">
-        <button id="crm-refresh" class="btn">Обновить</button>
-        <button id="crm-add" class="btn">Новая заявка</button>
-        <button id="crm-export" class="btn">Экспорт CSV</button>
-      </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="bookModal.close()">Отмена</button>
+      <button class="btn primary" form="bookForm" type="submit">Отправить заявку</button>
     </div>
-
-    <table id="crm-table" class="table" style="width:100%">
-      <thead>
-        <tr>
-          <th>Имя</th><th>Телефон</th><th>Email</th><th>Авто</th>
-          <th>С</th><th>По</th><th>Статус</th><th>Комментарий</th><th>Действия</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ====================== BOOKING (Calendar admin) ====================== -->
-<section id="tab-booking" class="tab">
-  <div class="card">
-    <div class="row space" style="gap:10px;flex-wrap:wrap">
-      <h3 style="margin:0">Календарь занятости</h3>
-      <button id="cal-add" class="btn primary" type="button">Новая запись</button>
-      <span class="muted" id="bk-status"></span>
-    </div>
-
-    <table id="cal-table" class="table" style="width:100%">
-      <thead>
-        <tr>
-          <th>Имя</th>
-          <th>Телефон</th>
-          <th>Авто (ID/Название)</th>
-          <th>С</th>
-          <th>По</th>
-          <th>Статус</th>
-          <th>Комментарий</th>
-          <th style="white-space:nowrap">Действия</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ====================== SETTINGS ====================== -->
-<section id="tab-settings" class="tab">
-  <div class="card">
-    <h3>Настройки сайта</h3>
-    <form id="settings-form">
-      <div class="grid2">
-        <div>
-          <label>Бренд<input name="brand" placeholder="Auto Rent"></label>
-          <label>Слоган (RO)<input name="slogan_ro" placeholder="chirii auto"></label>
-          <label>Слоган (RU)<input name="slogan_ru" placeholder="прокат авто"></label>
-          <label>Слоган (EN)<input name="slogan_en" placeholder="car rental"></label>
-        </div>
-        <div>
-          <label>Телефон основной<input name="phone_main" placeholder="+373 ..."></label>
-          <label>Телефон доп.<input name="phone_alt" placeholder="+373 ..."></label>
-          <label>Instagram<input name="instagram_link" placeholder="https://instagram.com/..."></label>
-          <label>WhatsApp<input name="whatsapp_link" placeholder="https://wa.me/373..."></label>
-          <label>Telegram<input name="telegram_link" placeholder="https://t.me/..."></label>
-          <label>Viber<input name="viber_link" placeholder="viber://chat?number=+373..."></label>
-          <label>Email<input name="email" placeholder="info@example.com"></label>
-          <label>Адрес<input name="address" placeholder="str. ..."></label>
-        </div>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="settings-save" type="submit">Сохранить настройки</button>
-        <span class="muted" id="settings-status"></span>
-      </div>
-    </form>
-  </div>
-</section>
-
-<!-- ====================== NOTIFY ====================== -->
-<section id="tab-notify" class="tab">
-  <div class="card">
-    <h3>Уведомления</h3>
-    <form id="notify-form">
-      <div class="grid2">
-        <div>
-          <label style="display:flex;align-items:center;gap:8px">
-            <input type="checkbox" name="email_enabled" checked> Отправлять на email
-          </label>
-          <label>Email для уведомлений
-            <input name="email_to" placeholder="you@example.com" value="paulacerniciuc@gmail.com">
-          </label>
-        </div>
-        <div class="muted">
-          Письма приходят при новых заявках и бронях. 
-          На Netlify добавьте переменные поставщика (например, SendGrid): SENDGRID_API_KEY, EMAIL_FROM, EMAIL_TO.
-        </div>
-      </div>
-      <div class="row">
-        <button class="btn primary" type="submit">Сохранить уведомления</button>
-        <span class="muted" id="notify-status"></span>
-      </div>
-    </form>
-  </div>
-</section>
+  </dialog>
 
 </main>
 
-<!-- твой базовый скрипт админки -->
-<script src="assets/js/admin.js"></script>
+<footer class="site-footer">
+  <!-- твой футер -->
+</footer>
 
-<!-- добавочные скрипты: CRM + Календарь -->
 <script>
-/* ===== Вспомогательные ===== */
-const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+/* ===== Утилиты ===== */
+const esc = s => String(s ?? '').replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]));
 const d10 = s => { if(!s) return ''; const d=new Date(s); return isNaN(+d)?String(s).slice(0,10):d.toISOString().slice(0,10); };
 
-/* -------------------- CRM -------------------- */
-const CRM_STATUSES = [
-  { v:'new', t:'Новая' }, { v:'in_progress', t:'В работе' },
-  { v:'confirmed', t:'Подтверждена' }, { v:'cancelled', t:'Отменена' }, { v:'done', t:'Завершена' }
-];
-
-let crmAll = [];
-
-async function crmLoad(){
-  try{
-    const r = await fetch('/.netlify/functions/crm-list');
-    const j = await r.json();
-    crmAll = j.clients || [];
-    renderCRMTable(crmAll);
-  }catch(e){ console.error('crmLoad', e); }
+/* ===== Данные авто =====
+   Ожидается файл /data/cars.json (как и раньше).
+   Поля: id, name, year, transmission, fuel, price_per_day, images[0], description.
+*/
+async function loadCars(){
+  const r = await fetch('data/cars.json',{cache:'no-store'});
+  if(!r.ok) throw new Error('Не удалось загрузить список авто');
+  return await r.json();
 }
 
-function crmRowHTML(c){
-  const opts = CRM_STATUSES.map(s => `<option value="${s.v}" ${c.status===s.v?'selected':''}>${s.t}</option>`).join('');
+/* ===== Рендер карточек ===== */
+function carCard(c){
+  const img = (c.images && c.images[0]) || 'images/placeholder.jpg';
   return `
-    <tr data-id="${esc(c.id||'')}">
-      <td><input value="${esc(c.name||'')}"></td>
-      <td><input value="${esc(c.phone||'')}"></td>
-      <td><input value="${esc(c.email||'')}"></td>
-      <td><input value="${esc(c.car||'')}"></td>
-      <td><input type="date" value="${d10(c.date_from)}"></td>
-      <td><input type="date" value="${d10(c.date_to)}"></td>
-      <td><select class="crm-status">${opts}</select></td>
-      <td><input value="${esc(c.comment||'')}"></td>
-      <td style="white-space:nowrap">
-        <button class="btn" data-action="save">💾</button>
-        <button class="btn" data-action="delete">🗑️</button>
-      </td>
-    </tr>`;
+    <article class="car">
+      <img class="img" src="${esc(img)}" alt="${esc(c.name||'car')}">
+      <div class="body">
+        <div class="row space">
+          <h3 style="margin:0">${esc(c.name||'Авто')}</h3>
+          <div class="price">${esc(c.price_per_day || '')} €/день</div>
+        </div>
+        <div class="muted" style="margin:.25rem 0 0.5rem">${esc(c.description || '')}</div>
+        <div class="row muted" style="flex-wrap:wrap">
+          <span>Год: ${esc(c.year || '—')}</span>
+          <span style="opacity:.4">|</span>
+          <span>КПП: ${esc(c.transmission || '—')}</span>
+          <span style="opacity:.4">|</span>
+          <span>Топливо: ${esc(c.fuel || '—')}</span>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" data-book data-id="${esc(c.id)}" data-title="${esc(c.name||'')}" >Забронировать</button>
+        </div>
+      </div>
+    </article>
+  `;
 }
 
-function renderCRMTable(items){
-  const tbody = document.querySelector('#crm-table tbody');
-  if(!tbody) return;
-  tbody.innerHTML = items.map(crmRowHTML).join('');
+async function renderCars(){
+  try{
+    const cars = await loadCars();
+    const wrap = document.getElementById('cars');
+    wrap.innerHTML = (cars||[]).map(carCard).join('');
 
-  tbody.querySelectorAll('[data-action="save"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr');
-    const data = readCrmRow(tr);
-    const r = await fetch('/.netlify/functions/crm-update',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+    // навешиваем обработчик на кнопки "Забронировать"
+    wrap.querySelectorAll('[data-book]').forEach(btn=>{
+      btn.addEventListener('click', () => openBooking(btn.dataset.id, btn.dataset.title));
     });
-    if(r.ok){
-      tr.dataset.id = data.id;
-      const i = crmAll.findIndex(x=>x.id===data.id); if(i===-1) crmAll.push(data); else crmAll[i]=data;
-      e.target.textContent='✓'; setTimeout(()=>e.target.textContent='💾',700);
-    }
-  });
-
-  tbody.querySelectorAll('[data-action="delete"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr');
-    const id = tr.dataset.id;
-    if(id && !confirm('Удалить заявку?')) return;
-    const ok = id ? (await fetch('/.netlify/functions/crm-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})).ok : true;
-    if(ok){ tr.remove(); crmAll = crmAll.filter(x=>x.id!==id); }
-  });
+  }catch(e){
+    document.getElementById('cars').innerHTML = `<div class="bad">Ошибка: ${esc(e.message)}</div>`;
+  }
 }
 
-function readCrmRow(tr){
-  const t=tr.querySelectorAll('td');
-  return {
-    id: tr.dataset.id || (Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6)),
-    name: t[0].querySelector('input').value.trim(),
-    phone: t[1].querySelector('input').value.trim(),
-    email: t[2].querySelector('input').value.trim(),
-    car: t[3].querySelector('input').value.trim(),
-    date_from: t[4].querySelector('input').value,
-    date_to: t[5].querySelector('input').value,
-    status: t[6].querySelector('select').value,
-    comment: t[7].querySelector('input').value.trim()
-  };
-}
+/* ===== Модалка брони ===== */
+const bookModal = document.getElementById('bookModal');
 
-// Поиск
-document.getElementById('crm-search')?.addEventListener('input', ()=>{
-  const q = document.getElementById('crm-search').value.trim().toLowerCase();
-  if(!q) return renderCRMTable(crmAll);
-  const filt = crmAll.filter(r =>
-    String(r.name||'').toLowerCase().includes(q) ||
-    String(r.phone||'').toLowerCase().includes(q)
-  );
-  renderCRMTable(filt);
-});
-document.getElementById('crm-refresh')?.addEventListener('click', crmLoad);
-document.getElementById('crm-add')?.addEventListener('click', ()=>{
-  const tbody = document.querySelector('#crm-table tbody');
-  const tmp = { id:'', name:'', phone:'', email:'', car:'', date_from:'', date_to:'', status:'new', comment:'' };
-  tbody.insertAdjacentHTML('afterbegin', crmRowHTML(tmp));
-});
-document.getElementById('crm-export')?.addEventListener('click', ()=>{
-  const rows = [['Имя','Телефон','Email','Авто','С','По','Статус','Комментарий']];
-  (crmAll||[]).forEach(c=>rows.push([c.name,c.phone,c.email,c.car,c.date_from,c.date_to,c.status,c.comment]));
-  const csv = rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a = document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='crm.csv'; a.click();
-});
+async function openBooking(carId, carTitle){
+  // заполняем шапку модалки
+  document.getElementById('bm-car-id').value = carId;
+  document.getElementById('bm-car-title').value = carTitle;
+  document.getElementById('bm-car-name').textContent = carTitle || ('Авто '+carId);
+  document.getElementById('bm-msg').textContent = '';
 
-/* -------------------- BOOKING (Calendar admin) -------------------- */
-const CAL_STATUSES = [
-  { v:'new', t:'Новая' }, { v:'hold', t:'Оплачивается' },
-  { v:'confirmed', t:'Подтверждена' }, { v:'done', t:'Завершена' },
-  { v:'cancelled', t:'Отменена' }
-];
-
-async function calLoad(){
+  // загрузим все брони, отфильтруем по этому авто, покажем занятые диапазоны
   try{
     const r = await fetch('/.netlify/functions/cal-list');
     const j = await r.json();
-    const items = Array.isArray(j.bookings) ? j.bookings : [];
-    renderCal(items);
-  }catch(e){ console.error('calLoad', e); }
-}
-
-function calRowHTML(b){
-  const opts = CAL_STATUSES.map(s=>`<option value="${s.v}" ${b.status===s.v?'selected':''}>${s.t}</option>`).join('');
-  return `
-  <tr data-id="${esc(b.id||'')}">
-    <td><input value="${esc(b.name||'')}"></td>
-    <td><input value="${esc(b.phone||'')}"></td>
-    <td>
-      <input placeholder="car_id" style="width:120px" value="${esc(b.car_id||'')}">
-      <input placeholder="Название" value="${esc(b.car||'')}">
-    </td>
-    <td><input type="date" value="${d10(b.date_from)}"></td>
-    <td><input type="date" value="${d10(b.date_to)}"></td>
-    <td><select class="cal-status">${opts}</select></td>
-    <td><input value="${esc(b.comment||'')}"></td>
-    <td style="white-space:nowrap">
-      <button class="btn" data-action="save">💾</button>
-      <button class="btn" data-action="delete">🗑️</button>
-    </td>
-  </tr>`;
-}
-
-function renderCal(items){
-  const tbody = document.querySelector('#cal-table tbody');
-  if(!tbody) return;
-  tbody.innerHTML = items.map(calRowHTML).join('');
-
-  tbody.querySelectorAll('[data-action="save"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr');
-    const data = readCalRow(tr);
-    const r = await fetch('/.netlify/functions/cal-update',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
-    });
-    if(r.ok){
-      const j = await r.json().catch(()=>({}));
-      tr.dataset.id = j.id || data.id;
-      e.target.textContent='✓'; setTimeout(()=>e.target.textContent='💾',700);
+    const booked = (j.bookings||[]).filter(b => String(b.car_id||'') === String(carId));
+    if(booked.length){
+      const txt = booked.map(b => `${d10(b.date_from)}→${d10(b.date_to)}`).join(', ');
+      document.getElementById('bm-booked').innerHTML = `<span class="muted">Занято: ${esc(txt)}</span>`;
+    }else{
+      document.getElementById('bm-booked').textContent = 'Свободно';
     }
-  });
+  }catch{ document.getElementById('bm-booked').textContent = ''; }
 
-  tbody.querySelectorAll('[data-action="delete"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr'); const id = tr.dataset.id;
-    if(id && !confirm('Удалить запись?')) return;
-    const ok = id ? (await fetch('/.netlify/functions/cal-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})).ok : true;
-    if(ok) tr.remove();
-  });
+  bookModal.showModal();
 }
 
-function readCalRow(tr){
-  const t = tr.querySelectorAll('td');
-  const carInputs = t[2].querySelectorAll('input');
-  return {
-    id: tr.dataset.id || (Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6)),
-    name: t[0].querySelector('input').value.trim(),
-    phone: t[1].querySelector('input').value.trim(),
-    car_id: carInputs[0].value.trim(),
-    car: carInputs[1].value.trim(),
-    date_from: t[3].querySelector('input').value,
-    date_to: t[4].querySelector('input').value,
-    status: t[5].querySelector('select').value,
-    comment: t[6].querySelector('input').value.trim()
-  };
-}
+/* отправка формы */
+document.getElementById('bookForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd.entries());
 
-document.getElementById('cal-add')?.addEventListener('click', async ()=>{
-  const tbody = document.querySelector('#cal-table tbody');
-  const tmp = { id:'', name:'', phone:'', car_id:'', car:'', date_from:'', date_to:'', status:'new', comment:'' };
-  tbody.insertAdjacentHTML('afterbegin', calRowHTML(tmp));
-});
+  // валидация диапазона дат
+  if(new Date(data.date_from) > new Date(data.date_to)){
+    document.getElementById('bm-msg').textContent = 'Дата по должна быть позже даты с';
+    return;
+  }
 
-/* -------------------- INIT -------------------- */
-document.addEventListener('DOMContentLoaded', ()=>{
-  // если твой assets/js/admin.js не управляет табами — простой переключатель:
-  document.querySelectorAll('.tab-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const tab = btn.dataset.tab;
-      document.querySelectorAll('.tab').forEach(s=>s.classList.remove('active'));
-      document.getElementById('tab-'+tab)?.classList.add('active');
+  document.getElementById('bm-msg').textContent = 'Отправляем...';
+
+  try{
+    const r = await fetch('/.netlify/functions/cal-update', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify(data)
     });
-  });
-
-  // загрузки списков
-  crmLoad();
-  calLoad();
+    const j = await r.json();
+    if(j.ok){
+      document.getElementById('bm-msg').textContent = 'Заявка отправлена! Менеджер свяжется с вами.';
+      setTimeout(()=>bookModal.close(), 900);
+      e.target.reset();
+    }else{
+      document.getElementById('bm-msg').textContent = 'Ошибка: ' + (j.error||'не удалось отправить');
+    }
+  }catch(err){
+    document.getElementById('bm-msg').textContent = 'Сеть недоступна. Попробуйте позже.';
+  }
 });
+
+/* старт */
+renderCars();
 </script>
+
 </body>
 </html>
