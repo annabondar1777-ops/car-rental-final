@@ -1,4 +1,5 @@
-import { sql, ok, bad, err, preflight } from "./_db.mjs";
+// netlify/functions/crm-delete.js
+import { sql, ok, bad, err, preflight } from './_db.js';
 
 export async function handler(event) {
   const pf = preflight(event); if (pf) return pf;
@@ -7,7 +8,9 @@ export async function handler(event) {
   try {
     const { id } = JSON.parse(event.body || "{}");
     if (!id) return bad(400, "id required");
+
     await sql`DELETE FROM clients WHERE id = ${id}`;
     return ok({ id });
-  } catch (e) { return err(e); }
+  }
+  catch (e) { return err(e); }
 }
