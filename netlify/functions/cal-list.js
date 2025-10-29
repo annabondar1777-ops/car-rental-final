@@ -1,14 +1,12 @@
-import { sql, ok, err, preflight, bad } from "./_db.mjs";
+// netlify/functions/cal-list.js
+import { sql, ok, bad, err, preflight } from './_db.js';
 
 export async function handler(event) {
   const pf = preflight(event); if (pf) return pf;
-  if (event.httpMethod !== "GET") return bad(405, "Method not allowed");
 
   try {
-    const car_id = event.queryStringParameters?.car_id || null;
-    const rows = car_id
-      ? await sql`SELECT * FROM bookings WHERE car_id=${car_id} ORDER BY id DESC`
-      : await sql`SELECT * FROM bookings ORDER BY id DESC`;
-    return ok({ bookings: rows });
-  } catch (e) { return err(e); }
+    const rows = await sql`SELECT * FROM bookings ORDER BY id DESC`;
+    return ok(rows);
+  }
+  catch (e) { return err(e); }
 }
