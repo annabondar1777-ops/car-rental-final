@@ -1,11 +1,16 @@
-const { getStore } = require('@netlify/blobs');
+// netlify/functions/crm-list.mjs
+import { getStore } from '@netlify/blobs';
 
-exports.handler = async () => {
+export const handler = async () => {
   try {
-    const store = getStore({ name: 'crm' });
-    const data = (await store.get('clients', { type: 'json' })) || { clients: [] };
-    return { statusCode: 200, headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true, ...data }) };
+    const crm = getStore('crm');
+    const items = (await crm.get('index.json', { type: 'json' })) || [];
+    return {
+      statusCode: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ok: true, items })
+    };
   } catch (e) {
-    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
+    return { statusCode: 500, body: JSON.stringify({ ok: false, error: e?.message }) };
   }
 };
