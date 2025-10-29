@@ -19,6 +19,25 @@
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761735125772_IMG_8966.jpeg",
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761735137275_3a238a18-3ae7-4ffa-94d1-85323e00a65f.jpeg"
       ]
+    },
+    {
+      "id": "id_cabxqct",
+      "name": {
+        "ru": "WOLKSWAGEN Jetta"
+      },
+      "description": {
+        "ru": ""
+      },
+      "year": "1018",
+      "transmission": "automat",
+      "fuel": "benzin",
+      "price_per_day": "35",
+      "bookable": true,
+      "published": true,
+      "images": [
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761746831370_IMG_4569.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761746832180_IMG_4570.jpeg"
+      ]
     }
   ]
 }
