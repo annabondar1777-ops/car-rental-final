@@ -1,38 +1,37 @@
 // netlify/functions/_db.js
 import { neon } from '@neondatabase/serverless';
 
-const cors = () => ({
+const sql = neon(process.env.NETLIFY_DATABASE_URL);
+
+const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type',
-  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS'
-});
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
 
-// Соединение с Neon (URL уже есть в переменных окружения Netlify)
-export const sql = neon(process.env.NETLIFY_DATABASE_URL);
-
-// Ответы-утилиты
-export const ok = (data) => ({
+const ok = (data) => ({
   statusCode: 200,
-  headers: cors(),
+  headers: CORS,
   body: JSON.stringify({ ok: true, data })
 });
 
-export const bad = (code = 400, message = 'Bad request') => ({
+const bad = (code = 400, msg = 'Bad request') => ({
   statusCode: code,
-  headers: cors(),
-  body: JSON.stringify({ ok: false, error: message })
+  headers: CORS,
+  body: JSON.stringify({ ok: false, error: msg })
 });
 
-export const err = (e) => ({
+const err = (e) => ({
   statusCode: 500,
-  headers: cors(),
+  headers: CORS,
   body: JSON.stringify({ ok: false, error: e?.message || String(e) })
 });
 
-// CORS preflight
-export const preflight = (event) => {
+const preflight = (event) => {
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: cors(), body: '' };
+    return { statusCode: 204, headers: CORS, body: '' };
   }
   return null;
 };
+
+export { sql, ok, bad, err, preflight };
