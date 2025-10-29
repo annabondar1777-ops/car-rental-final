@@ -1,1 +1,35 @@
-<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./cars.html">
+<section>
+  <h2>Заявки (CRM)</h2>
+  <table id="crmTable" border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Время</th><th>Имя</th><th>Телефон</th><th>Email</th><th>Авто</th><th>Даты</th><th>Статус</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<script>
+async function loadCRM(){
+  const r = await fetch('/.netlify/functions/crm-list');
+  const j = await r.json();
+  if(!j.ok) return alert('Не удалось загрузить CRM');
+  const tb = document.querySelector('#crmTable tbody');
+  tb.innerHTML = '';
+  j.items.forEach(x=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${new Date(x.createdAt).toLocaleString()}</td>
+      <td>${x.name||''}</td>
+      <td>${x.phone||''}</td>
+      <td>${x.email||''}</td>
+      <td>${x.carId||''}</td>
+      <td>${(x.startDate||'')}${x.endDate? ' → '+x.endDate : ''}</td>
+      <td>${x.status||'new'}</td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+loadCRM();
+</script>
