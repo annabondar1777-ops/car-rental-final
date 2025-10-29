@@ -330,13 +330,110 @@ async function calLoad(){
   }catch(e){ console.error('calLoad', e); }
 }
 
-function calRowHTML(b){
-  const opts = CAL_STATUSES.map(s=>`<option value="${s.v}" ${b.status===s.v?'selected':''}>${s.t}</option>`).join('');
-  return `
-  <tr data-id="${esc(b.id||'')}">
-    <td><input value="${esc(b.name||'')}"></td>
-    <td><input value="${esc(b.phone||'')}"></td>
-    <td>
-      <input placeholder="car_id" style="width:120px" value="${esc(b.car_id||'')}">
-      <input placeholder="Название" value="${esc(b.car||'')}
+  </tr>`;
+}
+
+/* SAVE / DELETE rows (calendar) */
+function renderCal(items){
+  const tbody = document.querySelector('#cal-table tbody');
+  if(!tbody) return;
+  tbody.innerHTML = items.map(calRowHTML).join('');
+
+  tbody.querySelectorAll('[data-action="save"]').forEach(b=>b.onclick = async (e)=>{
+    const tr = e.target.closest('tr');
+    const data = readCalRow(tr);
+    const r = await fetch('/.netlify/functions/cal-update',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+    });
+    if(r.ok){
+      const j = await r.json().catch(()=>({}));
+      tr.dataset.id = j.id || data.id;
+      e.target.textContent='✓'; setTimeout(()=>e.target.textContent='💾',700);
+    }
+  });
+
+  tbody.querySelectorAll('[data-action="delete"]').forEach(b=>b.onclick = async (e)=>{
+    const tr = e.target.closest('tr');
+    const id = tr.dataset.id;
+    if(id && !confirm('Удалить запись?')) return;
+    const ok = id ? (await fetch('/.netlify/functions/cal-delete',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})
+    })).ok : true;
+    if(ok) tr.remove();
+  });
+}
+
+function readCalRow(tr){
+  const t = tr.querySelectorAll('td');
+  const carInputs = t[2].querySelectorAll('input');
+  return {
+    id: tr.dataset.id || (Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6)),
+    name: t[0].querySelector('input').value.trim(),
+    phone: t[1].querySelector('input').value.trim(),
+    car_id: carInputs[0].value.trim(),
+    car: carInputs[1].value.trim(),
+    date_from: t[3].querySelector('input').value,
+    date_to: t[4].querySelector('input').value,
+    status: t[5].querySelector('select').value,
+    comment: t[6].querySelector('input').value.trim()
+  };
+}
+
+document.getElementById('cal-add')?.addEventListener('click', ()=>{
+  const tbody = document.querySelector('#cal-table tbody');
+  const tmp = { id:'', name:'', phone:'', car_id:'', car:'', date_from:'', date_to:'', status:'new', comment:'' };
+  tbody.insertAdjacentHTML('afterbegin', calRowHTML(tmp));
+});
+
+/* -------------------- BOOKING SEND FROM SITE  -------------------- */
+async function sendBookingForm(e) {
+  e.preventDefault();
+
+  const form = e.target;
+  const data = {
+    name: form.name.value.trim(),
+    phone: form.phone.value.trim(),
+    email: form.email.value.trim(),
+    car_id: form.car_id.value.trim(),
+    car: form.car_name.value.trim(),
+    date_from: form.date_from.value,
+    date_to: form.date_to.value,
+    comment: form.comment.value.trim()
+  };
+
+  const r = await fetch("/.netlify/functions/cal-create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
+  });
+
+  if (r.ok) {
+    alert("✅ Заявка отправлена!");
+    form.reset();
+  } else {
+    alert("❌ Ошибка отправки.");
+  }
+}
+
+document.querySelectorAll(".booking-form")?.forEach(form =>
+  form.addEventListener("submit", sendBookingForm)
+);
+
+/* -------------------- INIT -------------------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.tab').forEach(s=>s.classList.remove('active'));
+      document.getElementById('tab-'+tab)?.classList.add('active');
+    });
+  });
+
+  crmLoad();
+  calLoad();
+});
+</script>
+
+</body>
+</html>
 
