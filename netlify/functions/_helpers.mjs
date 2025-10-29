@@ -1,55 +1,44 @@
-// ✅ helpers: общие функции для всех netlify functions (без node-fetch)
 
-import { neon } from "@neondatabase/serverless";
+import fetch from 'node-fetch';
 
-export const sql = neon(process.env.NETLIFY_DATABASE_URL);
-
-// ------------------ RESPONSE HELPERS ------------------ //
-
-export function ok(data = {}) {
-  return {
-    statusCode: 200,
-    headers: corsHeaders(),
-    body: JSON.stringify({ ok: true, data }),
-  };
+async function getFile(api, repo, path, branch, token){
+  const url = `${api}/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+  const r = await fetch(url, { headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func' }});
+  if(!r.ok) return { sha: undefined, json: {} };
+  const j = await r.json();
+  const content = Buffer.from(j.content || '', 'base64').toString('utf-8');
+  try{ return { sha: j.sha, json: JSON.parse(content) }; }catch(e){ return { sha: j.sha, json: {} }; }
 }
-
-export function bad(status = 400, msg = "Bad Request") {
-  return {
-    statusCode: status,
-    headers: corsHeaders(),
-    body: JSON.stringify({ ok: false, error: msg }),
-  };
+async function putFile(api, repo, path, branch, token, sha, obj, message){
+  const content = Buffer.from(JSON.stringify(obj, null, 2)).toString('base64');
+  const url = `${api}/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const r = await fetch(url, {
+    method:'PUT',
+    headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func', 'Content-Type':'application/json' },
+    body: JSON.stringify({ message, content, branch, sha })
+  });
+  const out = await r.json();
+  if(!r.ok) throw out;
+  return out;
 }
+async function notifyWhatsApp(){ return { ok:false, skipped:true }; }
 
-// ------------------ ERROR WRAPPER ------------------ //
-
-export function err(e) {
-  console.error("❌ ERROR:", e);
-  return {
-    statusCode: 500,
-    headers: corsHeaders(),
-    body: JSON.stringify({ ok: false, error: e.message || "Server error" }),
-  };
-}
-
-// ------------------ CORS ------------------ //
-
-export function preflight(event) {
-  if (event.httpMethod === "OPTIONS") {
-    return {
-      statusCode: 200,
-      headers: corsHeaders(),
-      body: "",
-    };
+async function sendEmail(subject, text, env){
+  const to = (env.EMAIL_TO||'').trim(); const from = (env.EMAIL_FROM||'notify@yourdomain.local').trim();
+  if(!to) return { ok:false, skipped:true, reason:'no EMAIL_TO' };
+  if(env.SENDGRID_API_KEY){
+    const url='https://api.sendgrid.com/v3/mail/send';
+    const payload = { personalizations:[{ to:[{email:to}] }], from:{ email: from }, subject, content:[{ type:'text/plain', value:text }] };
+    const r = await fetch(url, { method:'POST', headers:{ Authorization:`Bearer ${env.SENDGRID_API_KEY}`, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
+    const txt = await r.text(); return { ok:r.status===202, resp:txt };
   }
-  return null;
+  if(env.MAILGUN_API_KEY && env.MAILGUN_DOMAIN){
+    const url = `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`;
+    const form = new URLSearchParams(); form.append('from', from); form.append('to', to); form.append('subject', subject); form.append('text', text);
+    const r = await fetch(url, { method:'POST', headers:{ Authorization: 'Basic '+Buffer.from('api:'+env.MAILGUN_API_KEY).toString('base64') }, body: form });
+    const j = await r.json().catch(()=>({})); return { ok:r.ok, resp:j };
+  }
+  return { ok:false, skipped:true, reason:'no provider' };
 }
 
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  };
-}
+export { getFile, putFile, notifyWhatsApp, sendEmail };

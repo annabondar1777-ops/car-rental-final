@@ -1,12 +1,11 @@
-// netlify/functions/cal-list.js
-import { sql, ok, bad, err, preflight } from './_db.js';
+const { getStore } = require('@netlify/blobs');
 
-export async function handler(event) {
-  const pf = preflight(event); if (pf) return pf;
-
+exports.handler = async () => {
   try {
-    const rows = await sql`SELECT * FROM bookings ORDER BY id DESC`;
-    return ok(rows);
+    const store = getStore({ name: 'calendar' });
+    const data = (await store.get('bookings', { type: 'json' })) || { bookings: [] };
+    return { statusCode: 200, headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true, ...data }) };
+  } catch (e) {
+    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
   }
-  catch (e) { return err(e); }
-}
+};

@@ -1,6 +1,5 @@
 
-const fetch = globalThis.fetch;
-
+import fetch from 'node-fetch';
 function nowFolder(){ const d=new Date(); return `${d.getUTCFullYear()}${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
 export const handler = async (event) => {
   try{

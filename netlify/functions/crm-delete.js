@@ -1,16 +1,20 @@
-// netlify/functions/crm-delete.js
-import { sql, ok, bad, err, preflight } from './_db.js';
+const { getStore } = require('@netlify/blobs');
 
-export async function handler(event) {
-  const pf = preflight(event); if (pf) return pf;
-  if (event.httpMethod !== "POST") return bad(405, "Method not allowed");
+exports.handler = async (event) => {
+  if (event.httpMethod !== 'POST')
+    return { statusCode: 405, headers:{'Access-Control-Allow-Origin':'*'}, body: 'Method not allowed' };
 
   try {
-    const { id } = JSON.parse(event.body || "{}");
-    if (!id) return bad(400, "id required");
+    const { id } = JSON.parse(event.body || '{}');
+    if (!id) return { statusCode: 400, headers:{'Access-Control-Allow-Origin':'*'}, body: 'id required' };
 
-    await sql`DELETE FROM clients WHERE id = ${id}`;
-    return ok({ id });
+    const store = getStore({ name: 'crm' });
+    const data  = (await store.get('clients', { type: 'json' })) || { clients: [] };
+
+    await store.set('clients', { clients: data.clients.filter(c => c.id !== id) }, { type: 'json' });
+
+    return { statusCode: 200, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true }) };
+  } catch (e) {
+    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
   }
-  catch (e) { return err(e); }
-}
+};

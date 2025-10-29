@@ -1,24 +1,43 @@
-// netlify/functions/crm-update.js
-import { sql, ok, bad, err, preflight } from './_db.js';
+const { store } = require("./_helpers");
 
-export async function handler(event) {
-  const pf = preflight(event); if (pf) return pf;
-  if (event.httpMethod !== "POST") return bad(405, "Method not allowed");
-
+exports.handler = async (event) => {
   try {
-    const c = JSON.parse(event.body || "{}");
-    const id = Number(c.id);
-    if (!id) return bad(400, "id required");
+    const data = JSON.parse(event.body || "{}");
+    const id = data.id;
 
-    const fields = ["name", "phone", "email", "car", "date_from", "date_to", "comment", "status"];
-    const keys = fields.filter(k => c[k] !== undefined);
-    if (!keys.length) return bad(400, "nothing to update");
+    if (!id) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing ID" })
+      };
+    }
 
-    const setSql = keys.map((k, i) => `${k} = $${i+1}`).join(", ");
-    const values = keys.map(k => c[k]);
+    const db = await store.get("clients", { type: "json" });
+    const clients = db?.clients || [];
 
-    const rows = await sql`UPDATE clients SET ${sql.raw(setSql)} WHERE id = ${id} RETURNING *`;
-    return ok({ client: rows[0] });
+    const index = clients.findIndex(c => c.id === id);
+    if (index === -1) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: "Not found" })
+      };
+    }
+
+    clients[index] = { ...clients[index], ...data };
+
+    await store.set("clients", { clients }, { type: "json" });
+
+    return {
+      statusCode: 200,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ ok: true, updated: clients[index] })
+    };
+
+  } catch (error) {
+    return {
+      statusCode: 500,
+      headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ error: error.message })
+    };
   }
-  catch (e) { return err(e); }
-}
+};

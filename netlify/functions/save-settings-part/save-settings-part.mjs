@@ -1,6 +1,5 @@
 
-const fetch = globalThis.fetch;
-
+import fetch from 'node-fetch';
 export const handler = async (event) => {
   try{
     if(event.httpMethod!=='POST') return { statusCode:405, body:'Method Not Allowed' };

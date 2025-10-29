@@ -1,62 +1,31 @@
-// netlify/functions/save-cars/save-cars.mjs
-import { sql, ok, bad, err, preflight } from '../_db.js';
-// ВАЖНО: не импортируем 'node-fetch' — в Node 18+ fetch глобальный
 
-export async function handler(event) {
-  const pf = preflight(event); if (pf) return pf;
-  if (event.httpMethod !== 'POST') return bad(405, 'Method not allowed');
-
-  try {
-    const b = JSON.parse(event.body || '{}');
-
-    const {
-      id,
-      name,
-      year,
-      transmission,
-      fuel,
-      price_per_day,
-      images,
-      description,
-      city_mpg,      // расход город
-      highway_mpg,   // расход трасса
-      bookable
-    } = b;
-
-    const imgs = Array.isArray(images)
-      ? images
-      : (typeof images === 'string'
-          ? images.split('\n').map(s => s.trim()).filter(Boolean)
-          : []);
-
-    let rows;
-    if (id) {
-      rows = await sql`
-        UPDATE cars SET
-          name=${name},
-          year=${year},
-          transmission=${transmission},
-          fuel=${fuel},
-          price_per_day=${price_per_day},
-          images=${JSON.stringify(imgs)},
-          description=${description},
-          city_mpg=${city_mpg},
-          highway_mpg=${highway_mpg},
-          bookable=${!!bookable}
-        WHERE id=${id}
-        RETURNING *`;
-    } else {
-      rows = await sql`
-        INSERT INTO cars
-          (name, year, transmission, fuel, price_per_day, images, description, city_mpg, highway_mpg, bookable)
-        VALUES
-          (${name}, ${year}, ${transmission}, ${fuel}, ${price_per_day}, ${JSON.stringify(imgs)},
-           ${description}, ${city_mpg}, ${highway_mpg}, ${!!bookable})
-        RETURNING *`;
-    }
-
-    return ok(rows[0]);
-  } catch (e) {
-    return err(e);
+import fetch from 'node-fetch';
+export const handler = async (event) => {
+  try{
+    if(event.httpMethod!=='POST') return { statusCode:405, body:'Method Not Allowed' };
+    const body = JSON.parse(event.body||'{}');
+    const cars = body.cars || [];
+    const token = process.env.GITHUB_TOKEN;
+    const repo  = process.env.REPO_FULL;
+    const branch= process.env.BRANCH || 'main';
+    const path  = process.env.FILE_PATH || 'data/cars.json';
+    if(!token||!repo) return { statusCode:500, body: JSON.stringify({error:'Missing env: GITHUB_TOKEN or REPO_FULL'}) };
+    const api='https://api.github.com';
+    const getUrl = `${api}/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
+    let sha, existingUrl;
+    const getRes = await fetch(getUrl, { headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func' } });
+    if(getRes.ok){ const j = await getRes.json(); sha=j.sha; existingUrl=j.download_url; }
+    const content = Buffer.from(JSON.stringify({cars}, null, 2)).toString('base64');
+    const putRes = await fetch(`${api}/repos/${repo}/contents/${encodeURIComponent(path)}`, {
+      method:'PUT',
+      headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func', 'Content-Type':'application/json' },
+      body: JSON.stringify({ message:'Update cars.json via Netlify', content, branch, sha })
+    });
+    const out = await putRes.json();
+    if(!putRes.ok) return { statusCode: putRes.status, body: JSON.stringify({error: out}) };
+    const url = out.content?.download_url || existingUrl || null;
+    return { statusCode:200, body: JSON.stringify({ ok:true, url }) };
+  }catch(e){
+    return { statusCode:500, body: JSON.stringify({ error: String(e) }) };
   }
-}
+};
