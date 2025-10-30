@@ -1,16 +1,12 @@
-// netlify/functions/crm-list.mjs
-import { getStore } from '@netlify/blobs';
+import { readJsonFile, ok, err } from './_helpers.mjs';
+const PATH = 'data/bookings.json';
 
 export const handler = async () => {
   try {
-    const crm = getStore('crm');
-    const items = (await crm.get('index.json', { type: 'json' })) || [];
-    return {
-      statusCode: 200,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ ok: true, items })
-    };
+    const { data } = await readJsonFile(PATH, []);
+    return ok({ bookings: Array.isArray(data) ? data : [] });
   } catch (e) {
-    return { statusCode: 500, body: JSON.stringify({ ok: false, error: e?.message }) };
+    return err(e.message);
   }
 };
+
