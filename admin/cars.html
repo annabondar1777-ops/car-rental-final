@@ -80,8 +80,8 @@
     <form id="crm-form">
       <div class="grid2">
         <div>
-          <label>Имя<input name="name" placeholder="Иван Иванов"></label>
-          <label>Телефон<input name="phone" placeholder="+373 ..."></label>
+          <label>Имя<input name="name" placeholder="Иван Иванов" required></label>
+          <label>Телефон<input name="phone" placeholder="+373 ..." required></label>
           <label>Email<input name="email" placeholder="client@example.com"></label>
           <label>Автомобиль<input name="car" placeholder="BMW X5"></label>
         </div>
@@ -104,9 +104,9 @@
       <div class="row" style="gap:10px;flex-wrap:wrap">
         <input id="crm-search" placeholder="Поиск: имя или телефон"
                style="width:280px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:transparent;color:inherit">
-        <button id="crm-refresh" class="btn">Обновить</button>
-        <button id="crm-add" class="btn">Новая заявка</button>
-        <button id="crm-export" class="btn">Экспорт CSV</button>
+        <button id="crm-refresh" class="btn" type="button">Обновить</button>
+        <button id="crm-add" class="btn" type="button">Новая заявка</button>
+        <button id="crm-export" class="btn" type="button">Экспорт CSV</button>
       </div>
     </div>
 
@@ -212,9 +212,13 @@
 <script src="assets/js/admin.js"></script>
 
 <script>
+/* ===== helpers ===== */
 const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 const d10 = s => { if(!s) return ''; const d=new Date(s); return isNaN(+d)?String(s).slice(0,10):d.toISOString().slice(0,10); };
 
+/* =====================================================
+   CRM (list from /data/clients.json, save via functions)
+   ===================================================== */
 const CRM_STATUSES = [
   { v:'new', t:'Новая' }, { v:'in_progress', t:'В работе' },
   { v:'confirmed', t:'Подтверждена' }, { v:'cancelled', t:'Отменена' }, { v:'done', t:'Завершена' }
@@ -224,11 +228,15 @@ let crmAll = [];
 
 async function crmLoad(){
   try{
-    const r = await fetch('/.netlify/functions/crm-list');
+    // читаем напрямую JSON в репозитории
+    const r = await fetch('/data/clients.json', { cache: 'no-store' });
     const j = await r.json();
-    crmAll = j.clients || [];
+    crmAll = Array.isArray(j) ? j : (j.clients || []);
     renderCRMTable(crmAll);
-  }catch(e){ console.error('crmLoad', e); }
+  }catch(e){
+    console.error('crmLoad', e);
+    document.querySelector('#crm-status').textContent = 'Ошибка загрузки CRM';
+  }
 }
 
 function crmRowHTML(c){
@@ -238,7 +246,7 @@ function crmRowHTML(c){
       <td><input value="${esc(c.name||'')}"></td>
       <td><input value="${esc(c.phone||'')}"></td>
       <td><input value="${esc(c.email||'')}"></td>
-      <td><input value="${esc(c.car||'')}"></td>
+      <td><input value="${esc(c.cars||c.car||'')}"></td>
       <td><input type="date" value="${d10(c.date_from)}"></td>
       <td><input type="date" value="${d10(c.date_to)}"></td>
       <td><select class="crm-status">${opts}</select></td>
@@ -248,33 +256,6 @@ function crmRowHTML(c){
         <button class="btn" data-action="delete">🗑️</button>
       </td>
     </tr>`;
-}
-
-function renderCRMTable(items){
-  const tbody = document.querySelector('#crm-table tbody');
-  if(!tbody) return;
-  tbody.innerHTML = items.map(crmRowHTML).join('');
-
-  tbody.querySelectorAll('[data-action="save"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr');
-    const data = readCrmRow(tr);
-    const r = await fetch('/.netlify/functions/crm-update',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
-    });
-    if(r.ok){
-      tr.dataset.id = data.id;
-      const i = crmAll.findIndex(x=>x.id===data.id); if(i===-1) crmAll.push(data); else crmAll[i]=data;
-      e.target.textContent='✓'; setTimeout(()=>e.target.textContent='💾',700);
-    }
-  });
-
-  tbody.querySelectorAll('[data-action="delete"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr');
-    const id = tr.dataset.id;
-    if(id && !confirm('Удалить заявку?')) return;
-    const ok = id ? (await fetch('/.netlify/functions/crm-delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})})).ok : true;
-    if(ok){ tr.remove(); crmAll = crmAll.filter(x=>x.id!==id); }
-  });
 }
 
 function readCrmRow(tr){
@@ -292,6 +273,86 @@ function readCrmRow(tr){
   };
 }
 
+function renderCRMTable(items){
+  const tbody = document.querySelector('#crm-table tbody');
+  if(!tbody) return;
+  tbody.innerHTML = items.map(crmRowHTML).join('');
+
+  // SAVE
+  tbody.querySelectorAll('[data-action="save"]').forEach(b=>b.onclick = async (e)=>{
+    const tr = e.target.closest('tr');
+    const data = readCrmRow(tr);
+    let ok=false, code=0;
+
+    // основной апдейт
+    try{
+      const r = await fetch('/.netlify/functions/crm-update',{
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+      });
+      ok = r.ok; code = r.status;
+    }catch(_){}
+
+    // запасной путь — просто append
+    if(!ok){
+      try{
+        const r2 = await fetch('/.netlify/functions/save-client',{
+          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+        });
+        ok = r2.ok; code = r2.status;
+      }catch(_){}
+    }
+
+    if(ok){
+      tr.dataset.id = data.id;
+      const i = crmAll.findIndex(x=>x.id===data.id);
+      if(i===-1) crmAll.unshift(data); else crmAll[i]=data;
+      e.target.textContent='✓'; setTimeout(()=>e.target.textContent='💾',800);
+    }else{
+      alert('CRM ошибка сохранения ('+code+')');
+    }
+  });
+
+  // DELETE
+  tbody.querySelectorAll('[data-action="delete"]').forEach(b=>b.onclick = async (e)=>{
+    const tr = e.target.closest('tr');
+    const id = tr.dataset.id;
+    if(!id){ tr.remove(); return; }
+    if(!confirm('Удалить заявку?')) return;
+    try{
+      const r = await fetch('/.netlify/functions/crm-delete',{
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id})
+      });
+      if(r.ok){ tr.remove(); crmAll = crmAll.filter(x=>x.id!==id); }
+      else alert('CRM ошибка удаления ('+r.status+')');
+    }catch{ alert('CRM ошибка сети'); }
+  });
+}
+
+// форма «Сохранить заявку»
+document.getElementById('crm-form')?.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const f = e.target;
+  const payload = {
+    id: Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),
+    name: f.name.value.trim(),
+    phone: f.phone.value.trim(),
+    email: f.email.value.trim(),
+    car: f.car.value.trim(),
+    date_from: f.date_from.value,
+    date_to: f.date_to.value,
+    status: 'new',
+    comment: f.comment.value.trim()
+  };
+  const r = await fetch('/.netlify/functions/save-client',{
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+  }).catch(()=>null);
+
+  const status = document.getElementById('crm-status');
+  if(r && r.ok){ status.textContent='Сохранено и отправлено'; f.reset(); crmLoad(); }
+  else{ status.textContent='Ошибка CRM'; alert('Ошибка CRM: '+(r?.status||'network')); }
+});
+
+// поиск/кнопки
 document.getElementById('crm-search')?.addEventListener('input', ()=>{
   const q = document.getElementById('crm-search').value.trim().toLowerCase();
   if(!q) return renderCRMTable(crmAll);
@@ -314,7 +375,9 @@ document.getElementById('crm-export')?.addEventListener('click', ()=>{
   const a = document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download='crm.csv'; a.click();
 });
 
-/* -------------------- BOOKING -------------------- */
+/* =====================================================
+   BOOKING (list from /data/bookings.json, save via functions)
+   ===================================================== */
 const CAL_STATUSES = [
   { v:'new', t:'Новая' }, { v:'hold', t:'Оплачивается' },
   { v:'confirmed', t:'Подтверждена' }, { v:'done', t:'Завершена' },
@@ -323,44 +386,35 @@ const CAL_STATUSES = [
 
 async function calLoad(){
   try{
-    const r = await fetch('/.netlify/functions/cal-list');
+    const r = await fetch('/data/bookings.json', { cache:'no-store' });
     const j = await r.json();
-    const items = Array.isArray(j.bookings) ? j.bookings : [];
+    const items = Array.isArray(j) ? j : (j.bookings || []);
     renderCal(items);
-  }catch(e){ console.error('calLoad', e); }
+  }catch(e){
+    console.error('calLoad', e);
+    document.getElementById('bk-status').textContent = 'Ошибка загрузки календаря';
+  }
 }
 
+function calRowHTML(b){
+  const opts = CAL_STATUSES.map(s=>`<option value="${s.v}" ${b.status===s.v?'selected':''}>${s.t}</option>`).join('');
+  return `
+  <tr data-id="${esc(b.id||'')}">
+    <td><input value="${esc(b.name||'')}"></td>
+    <td><input value="${esc(b.phone||'')}"></td>
+    <td>
+      <input placeholder="car_id" style="width:120px" value="${esc(b.car_id||'')}">
+      <input placeholder="Название" value="${esc(b.car||'')}">
+    </td>
+    <td><input type="date" value="${d10(b.date_from)}"></td>
+    <td><input type="date" value="${d10(b.date_to)}"></td>
+    <td><select class="cal-status">${opts}</select></td>
+    <td><input value="${esc(b.comment||'')}"></td>
+    <td style="white-space:nowrap">
+      <button class="btn" data-action="save">💾</button>
+      <button class="btn" data-action="delete">🗑️</button>
+    </td>
   </tr>`;
-}
-
-/* SAVE / DELETE rows (calendar) */
-function renderCal(items){
-  const tbody = document.querySelector('#cal-table tbody');
-  if(!tbody) return;
-  tbody.innerHTML = items.map(calRowHTML).join('');
-
-  tbody.querySelectorAll('[data-action="save"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr');
-    const data = readCalRow(tr);
-    const r = await fetch('/.netlify/functions/cal-update',{
-      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
-    });
-    if(r.ok){
-      const j = await r.json().catch(()=>({}));
-      tr.dataset.id = j.id || data.id;
-      e.target.textContent='✓'; setTimeout(()=>e.target.textContent='💾',700);
-    }
-  });
-
-  tbody.querySelectorAll('[data-action="delete"]').forEach(b=>b.onclick = async (e)=>{
-    const tr = e.target.closest('tr');
-    const id = tr.dataset.id;
-    if(id && !confirm('Удалить запись?')) return;
-    const ok = id ? (await fetch('/.netlify/functions/cal-delete',{
-      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})
-    })).ok : true;
-    if(ok) tr.remove();
-  });
 }
 
 function readCalRow(tr){
@@ -379,47 +433,59 @@ function readCalRow(tr){
   };
 }
 
+function renderCal(items){
+  const tbody = document.querySelector('#cal-table tbody');
+  if(!tbody) return;
+  tbody.innerHTML = items.map(calRowHTML).join('');
+
+  // SAVE
+  tbody.querySelectorAll('[data-action="save"]').forEach(b=>b.onclick = async (e)=>{
+    const tr = e.target.closest('tr');
+    const data = readCalRow(tr);
+    let ok=false, code=0;
+
+    try{
+      const r = await fetch('/.netlify/functions/cal-update',{
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+      });
+      ok = r.ok; code = r.status;
+    }catch(_){}
+
+    if(!ok){
+      try{
+        const r2 = await fetch('/.netlify/functions/save-booking',{
+          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+        });
+        ok = r2.ok; code = r2.status;
+      }catch(_){}
+    }
+
+    if(ok){
+      tr.dataset.id = data.id;
+      e.target.textContent='✓'; setTimeout(()=>e.target.textContent='💾',800);
+    }else{
+      alert('Календарь: ошибка сохранения ('+code+')');
+    }
+  });
+
+  // DELETE
+  tbody.querySelectorAll('[data-action="delete"]').forEach(b=>b.onclick = async (e)=>{
+    const tr = e.target.closest('tr'); const id = tr.dataset.id;
+    if(id && !confirm('Удалить запись?')) return;
+    const r = id ? await fetch('/.netlify/functions/cal-delete',{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})
+    }).catch(()=>null) : { ok:true };
+    if(r && r.ok) tr.remove(); else alert('Календарь: ошибка удаления');
+  });
+}
+
 document.getElementById('cal-add')?.addEventListener('click', ()=>{
   const tbody = document.querySelector('#cal-table tbody');
   const tmp = { id:'', name:'', phone:'', car_id:'', car:'', date_from:'', date_to:'', status:'new', comment:'' };
   tbody.insertAdjacentHTML('afterbegin', calRowHTML(tmp));
 });
 
-/* -------------------- BOOKING SEND FROM SITE  -------------------- */
-async function sendBookingForm(e) {
-  e.preventDefault();
-
-  const form = e.target;
-  const data = {
-    name: form.name.value.trim(),
-    phone: form.phone.value.trim(),
-    email: form.email.value.trim(),
-    car_id: form.car_id.value.trim(),
-    car: form.car_name.value.trim(),
-    date_from: form.date_from.value,
-    date_to: form.date_to.value,
-    comment: form.comment.value.trim()
-  };
-
-  const r = await fetch("/.netlify/functions/cal-create", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data)
-  });
-
-  if (r.ok) {
-    alert("✅ Заявка отправлена!");
-    form.reset();
-  } else {
-    alert("❌ Ошибка отправки.");
-  }
-}
-
-document.querySelectorAll(".booking-form")?.forEach(form =>
-  form.addEventListener("submit", sendBookingForm)
-);
-
-/* -------------------- INIT -------------------- */
+/* ===== ИНИЦИАЛИЗАЦИЯ вкладок + первичная загрузка ===== */
 document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelectorAll('.tab-btn').forEach(btn=>{
     btn.addEventListener('click', ()=>{
