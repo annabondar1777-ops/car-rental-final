@@ -1,49 +1,32 @@
-// netlify/functions/cal-update.mjs
-import { getStore } from '@netlify/blobs';
+import { readJsonFile, writeJsonFile, ok, err } from './_helpers.mjs';
+const PATH = 'data/bookings.json';
 
-const fetch = globalThis.fetch;
-const ok = (data = {}) => ({ statusCode: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: true, ...data }) });
-const bad = (code, msg) => ({ statusCode: code, headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ok: false, error: msg }) });
-
-export const handler = async (event) => {
+export const handler = async (evt) => {
+  if (evt.httpMethod !== 'POST') return err('Use POST');
   try {
-    if (event.httpMethod !== 'POST') return bad(405, 'Use POST');
+    const input = JSON.parse(evt.body || '{}');
+    const item = {
+      id: input.id || (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6)),
+      name: input.name?.trim() || '',
+      phone: input.phone?.trim() || '',
+      car_id: input.car_id?.trim() || '',
+      car: input.car?.trim() || '',
+      date_from: input.date_from || '',
+      date_to: input.date_to || '',
+      status: input.status || 'new',
+      comment: input.comment?.trim() || '',
+      createdAt: input.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
 
-    const { carId, name, phone, email, startDate, endDate, msg } = JSON.parse(event.body || '{}');
-    if (!carId || !startDate || !endDate) return bad(400, 'carId, startDate, endDate required');
+    const { data, sha } = await readJsonFile(PATH, []);
+    const list = Array.isArray(data) ? data : [];
+    const i = list.findIndex(x => x.id === item.id);
+    if (i === -1) list.unshift(item); else list[i] = item;
 
-    // создаём lead (это запишет в CRM и отправит письмо)
-    const res = await fetch('/.netlify/functions/crm-create', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ carId, name, phone, email, startDate, endDate, msg, source: 'site' })
-    });
-
-    const j = await res.json();
-    if (!j.ok) return bad(500, j.error || 'crm-create failed');
-    const leadId = j.leadId;
-
-    // на всякий случай продублируем запись в календарь (если crm-create не сделал)
-    const cal = getStore('calendar');
-    const key = `bookings/${carId}.json`;
-    const bookings = (await cal.get(key, { type: 'json' })) || [];
-
-    const s = new Date(startDate);
-    const e = new Date(endDate);
-    const overlap = bookings.some(b => !(new Date(b.end) < s || new Date(b.start) > e));
-    if (!overlap) {
-      bookings.push({
-        start: s.toISOString().slice(0, 10),
-        end: e.toISOString().slice(0, 10),
-        leadId,
-        createdAt: new Date().toISOString()
-      });
-      await cal.set(key, JSON.stringify(bookings), { metadata: { contentType: 'application/json' } });
-    }
-
-    return ok({ leadId, bookings });
+    await writeJsonFile(PATH, list, sha, 'calendar: upsert');
+    return ok({ id: item.id });
   } catch (e) {
-    console.error(e);
-    return bad(500, e?.message || 'server error');
+    return err(e.message);
   }
 };
