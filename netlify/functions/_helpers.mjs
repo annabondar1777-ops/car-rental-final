@@ -1,44 +1,60 @@
+const REPO_FULL = process.env.REPO_FULL;           // "owner/repo"
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;     // classic token
+const BRANCH = 'main';
 
-import fetch from 'node-fetch';
-
-async function getFile(api, repo, path, branch, token){
-  const url = `${api}/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
-  const r = await fetch(url, { headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func' }});
-  if(!r.ok) return { sha: undefined, json: {} };
-  const j = await r.json();
-  const content = Buffer.from(j.content || '', 'base64').toString('utf-8');
-  try{ return { sha: j.sha, json: JSON.parse(content) }; }catch(e){ return { sha: j.sha, json: {} }; }
-}
-async function putFile(api, repo, path, branch, token, sha, obj, message){
-  const content = Buffer.from(JSON.stringify(obj, null, 2)).toString('base64');
-  const url = `${api}/repos/${repo}/contents/${encodeURIComponent(path)}`;
-  const r = await fetch(url, {
-    method:'PUT',
-    headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func', 'Content-Type':'application/json' },
-    body: JSON.stringify({ message, content, branch, sha })
+const api = (path, init = {}) =>
+  fetch(`https://api.github.com${path}`, {
+    ...init,
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Accept': 'application/vnd.github+json',
+      ...init.headers
+    }
   });
-  const out = await r.json();
-  if(!r.ok) throw out;
-  return out;
-}
-async function notifyWhatsApp(){ return { ok:false, skipped:true }; }
 
-async function sendEmail(subject, text, env){
-  const to = (env.EMAIL_TO||'').trim(); const from = (env.EMAIL_FROM||'notify@yourdomain.local').trim();
-  if(!to) return { ok:false, skipped:true, reason:'no EMAIL_TO' };
-  if(env.SENDGRID_API_KEY){
-    const url='https://api.sendgrid.com/v3/mail/send';
-    const payload = { personalizations:[{ to:[{email:to}] }], from:{ email: from }, subject, content:[{ type:'text/plain', value:text }] };
-    const r = await fetch(url, { method:'POST', headers:{ Authorization:`Bearer ${env.SENDGRID_API_KEY}`, 'Content-Type':'application/json' }, body: JSON.stringify(payload) });
-    const txt = await r.text(); return { ok:r.status===202, resp:txt };
-  }
-  if(env.MAILGUN_API_KEY && env.MAILGUN_DOMAIN){
-    const url = `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`;
-    const form = new URLSearchParams(); form.append('from', from); form.append('to', to); form.append('subject', subject); form.append('text', text);
-    const r = await fetch(url, { method:'POST', headers:{ Authorization: 'Basic '+Buffer.from('api:'+env.MAILGUN_API_KEY).toString('base64') }, body: form });
-    const j = await r.json().catch(()=>({})); return { ok:r.ok, resp:j };
-  }
-  return { ok:false, skipped:true, reason:'no provider' };
+const toBase64 = (str) => Buffer.from(str, 'utf8').toString('base64');
+const fromBase64 = (b64) => Buffer.from(b64, 'base64').toString('utf8');
+
+export async function readJsonFile(pathInRepo, fallback = []) {
+  // GET /repos/{owner}/{repo}/contents/{path}?ref=BRANCH
+  const res = await api(`/repos/${REPO_FULL}/contents/${encodeURIComponent(pathInRepo)}?ref=${BRANCH}`);
+  if (res.status === 404) return { data: fallback, sha: null };
+  if (!res.ok) throw new Error(`GitHub GET failed: ${res.status}`);
+  const j = await res.json();
+  const raw = fromBase64(j.content || '');
+  let data = fallback;
+  try { data = JSON.parse(raw); } catch { /* keep fallback */ }
+  return { data, sha: j.sha || null };
 }
 
-export { getFile, putFile, notifyWhatsApp, sendEmail };
+export async function writeJsonFile(pathInRepo, data, sha, message) {
+  const body = {
+    message: message || `update ${pathInRepo}`,
+    content: toBase64(JSON.stringify(data, null, 2)),
+    branch: BRANCH
+  };
+  if (sha) body.sha = sha;
+  const res = await api(`/repos/${REPO_FULL}/contents/${encodeURIComponent(pathInRepo)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`GitHub PUT failed: ${res.status}`);
+  return await res.json();
+}
+
+export function ok(body) {
+  return {
+    statusCode: 200,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    body: JSON.stringify({ ok: true, ...body })
+  };
+}
+export function err(msg, code = 200) {
+  return {
+    statusCode: code,
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+    body: JSON.stringify({ ok: false, error: String(msg) })
+  };
+}
+
