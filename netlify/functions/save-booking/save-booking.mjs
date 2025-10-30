@@ -1,27 +1,95 @@
+// netlify/functions/save-booking.mjs
+const REPO   = process.env.REPO_FULL;
+const BRANCH = process.env.BRANCH || "main";
+const TOKEN  = process.env.GITHUB_TOKEN;
+const FILE   = "data/bookings.json";
 
-import { getFile, putFile, notifyWhatsApp, sendEmail } from '../_helpers.mjs';
+const gh = (path, init={}) => fetch(`https://api.github.com${path}`, {
+  ...init,
+  headers: {
+    Authorization: `Bearer ${TOKEN}`,
+    Accept: "application/vnd.github+json",
+    "User-Agent": "netlify-fn",
+    ...(init.headers || {})
+  }
+});
+
+const b64 = (s) => Buffer.from(s, "utf8").toString("base64");
+const unb64 = (s) => Buffer.from(s || "", "base64").toString("utf8");
+
+async function readList() {
+  const r = await gh(`/repos/${REPO}/contents/${encodeURIComponent(FILE)}?ref=${BRANCH}`);
+  if (r.status === 404) return { list: [], sha: null };
+  if (!r.ok) throw new Error(`GET ${FILE}: ${r.status}`);
+  const j = await r.json();
+  const txt = unb64(j.content);
+  let list = [];
+  try { list = JSON.parse(txt || "[]"); } catch {}
+  return { list: Array.isArray(list) ? list : [], sha: j.sha || null };
+}
+
+async function writeList(list, sha, msg) {
+  const body = {
+    message: msg || "update bookings.json",
+    content: b64(JSON.stringify(list, null, 2)),
+    branch: BRANCH,
+    ...(sha ? { sha } : {})
+  };
+  const r = await gh(`/repos/${REPO}/contents/${encodeURIComponent(FILE)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    throw new Error(`PUT ${FILE}: ${r.status} ${t}`);
+  }
+}
+
 export const handler = async (event) => {
-  try{
-    if(event.httpMethod!=='POST') return { statusCode:405, body:'Method Not Allowed' };
-    const payload = JSON.parse(event.body||'{}');
-    const token  = process.env.GITHUB_TOKEN; const repo = process.env.REPO_FULL; const branch = process.env.BRANCH || 'main';
-    if(!token||!repo) return { statusCode:500, body: JSON.stringify({error:'Missing env: GITHUB_TOKEN or REPO_FULL'}) };
-    const api='https://api.github.com'; const path='data/bookings.json';
-    const getUrl = `${api}/repos/${repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(branch)}`;
-    let sha, obj={bookings:[]};
-    const getRes = await fetch(getUrl, { headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func' } });
-    if(getRes.ok){ const j=await getRes.json(); sha=j.sha; try{ obj = JSON.parse(Buffer.from(j.content||'', 'base64').toString('utf-8')); }catch(e){} }
-    payload.created_at = new Date().toISOString(); obj.bookings = obj.bookings||[]; obj.bookings.push(payload);
-    const content = Buffer.from(JSON.stringify(obj, null, 2)).toString('base64');
-    const putRes = await fetch(`${api}/repos/${repo}/contents/${encodeURIComponent(path)}`, {
-      method:'PUT', headers:{ Authorization:`token ${token}`, 'User-Agent':'netlify-func', 'Content-Type':'application/json' },
-      body: JSON.stringify({ message:'Add booking via Netlify', content, branch, sha })
-    });
-    const out = await putRes.json(); if(!putRes.ok) return { statusCode: putRes.status, body: JSON.stringify({error: out}) };
-    const msg = `Бронь: авто ${payload.car||'-'} ${payload.date_from||''}→${payload.date_to||''}`;
-    await notifyWhatsApp(msg, process.env);
-    await sendEmail('Новое бронирование на сайте', msg + `
-Зайдите в админку: ${process.env.SITE_URL||''}/admin/cars.html`, process.env);
-    return { statusCode:200, body: JSON.stringify({ok:true}) };
-  }catch(e){ return { statusCode:500, body: JSON.stringify({error:String(e)}) }; }
+  if (event.httpMethod !== "POST") {
+    return resp({ ok: false, error: "Use POST" }, 405);
+  }
+  try {
+    const payload = JSON.parse(event.body || "{}");
+    const op = (payload.op || "upsert").toLowerCase();
+
+    const { list, sha } = await readList();
+
+    if (op === "delete") {
+      const id = payload.id;
+      if (!id) return resp({ ok: false, error: "Missing id" }, 400);
+      const next = list.filter(x => x.id !== id);
+      await writeList(next, sha, `bookings: delete ${id}`);
+      return resp({ ok: true });
+    }
+
+    // upsert
+    const now = new Date().toISOString();
+    const id = payload.id || (Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,6));
+    const rec = {
+      id,
+      name: (payload.name || "").trim(),
+      phone: (payload.phone || "").trim(),
+      car_id: (payload.car_id || "").trim(),
+      car: (payload.car || "").trim(),
+      date_from: payload.date_from || "",
+      date_to: payload.date_to || "",
+      status: payload.status || "new",
+      comment: (payload.comment || "").trim(),
+      updatedAt: now,
+      createdAt: payload.createdAt || now
+    };
+
+    const i = list.findIndex(x => x.id === rec.id);
+    if (i === -1) list.unshift(rec); else list[i] = { ...(list[i]||{}), ...rec };
+    await writeList(list, sha, `bookings: upsert ${rec.id}`);
+    return resp({ ok: true, id: rec.id });
+  } catch (e) {
+    return resp({ ok: false, error: String(e) }, 502);
+  }
 };
+
+function resp(obj, status=200){
+  return { statusCode: status, headers: { "Content-Type":"application/json" }, body: JSON.stringify(obj) };
+}
