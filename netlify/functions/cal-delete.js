@@ -1,17 +1,37 @@
-import { readJsonFile, writeJsonFile, ok, err } from './_helpers.mjs';
-const PATH = 'data/bookings.json';
-
-export const handler = async (evt) => {
-  if (evt.httpMethod !== 'POST') return err('Use POST');
+export const handler = async (event) => {
   try {
-    const { id } = JSON.parse(evt.body || '{}');
-    if (!id) return err('Missing id');
+    if (event.httpMethod !== 'POST') return resp(405, { ok: false, error: 'Use POST' });
 
-    const { data, sha } = await readJsonFile(PATH, []);
-    const list = (Array.isArray(data) ? data : []).filter(x => x.id !== id);
-    await writeJsonFile(PATH, list, sha, 'calendar: delete');
-    return ok({});
+    const repo = process.env.REPO_FULL;
+    const token = process.env.GITHUB_TOKEN;
+    if (!repo || !token) throw new Error('Missing REPO_FULL or GITHUB_TOKEN');
+
+    const { id } = JSON.parse(event.body || '{}');
+    if (!id) return resp(400, { ok: false, error: 'id required' });
+
+    const { json, sha } = await readFileFromGit(repo, token, 'data/bookings.json');
+    const list = Array.isArray(json.bookings) ? json.bookings : [];
+    const newList = list.filter((x) => x.id !== id);
+
+    await writeFileToGit(repo, token, 'data/bookings.json', { bookings: newList }, sha, `Calendar: delete ${id}`);
+    return resp(200, { ok: true });
   } catch (e) {
-    return err(e.message);
+    return resp(500, { ok: false, error: String(e.message || e) });
   }
 };
+
+async function readFileFromGit(repo, token, path) {
+  const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const r = await fetch(api, { headers: { Authorization: `token ${token}`, 'User-Agent': 'netlify-fn' } });
+  if (!r.ok) throw new Error(`read ${path}: ${r.status}`);
+  const data = await r.json();
+  const content = Buffer.from(data.content, data.encoding).toString('utf8');
+  return { json: JSON.parse(content || '{}'), sha: data.sha };
+}
+async function writeFileToGit(repo, token, path, json, sha, message) {
+  const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const body = { message: message || `update ${path}`, content: Buffer.from(JSON.stringify(json, null, 2)).toString('base64'), sha };
+  const r = await fetch(api, { method: 'PUT', headers: { Authorization: `token ${token}`, 'User-Agent': 'netlify-fn', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`write ${path}: ${r.status}`);
+}
+function resp(status, json){ return { statusCode: status, headers:{'Content-Type':'application/json'}, body: JSON.stringify(json)} }
