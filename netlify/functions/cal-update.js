@@ -1,32 +1,43 @@
-import { readJsonFile, writeJsonFile, ok, err } from './_helpers.mjs';
-const PATH = 'data/bookings.json';
-
-export const handler = async (evt) => {
-  if (evt.httpMethod !== 'POST') return err('Use POST');
+export const handler = async (event) => {
   try {
-    const input = JSON.parse(evt.body || '{}');
-    const item = {
-      id: input.id || (Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6)),
-      name: input.name?.trim() || '',
-      phone: input.phone?.trim() || '',
-      car_id: input.car_id?.trim() || '',
-      car: input.car?.trim() || '',
-      date_from: input.date_from || '',
-      date_to: input.date_to || '',
-      status: input.status || 'new',
-      comment: input.comment?.trim() || '',
-      createdAt: input.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    if (event.httpMethod !== 'POST') return resp(405, { ok: false, error: 'Use POST' });
 
-    const { data, sha } = await readJsonFile(PATH, []);
-    const list = Array.isArray(data) ? data : [];
-    const i = list.findIndex(x => x.id === item.id);
-    if (i === -1) list.unshift(item); else list[i] = item;
+    const repo = process.env.REPO_FULL;
+    const token = process.env.GITHUB_TOKEN;
+    if (!repo || !token) throw new Error('Missing REPO_FULL or GITHUB_TOKEN');
 
-    await writeJsonFile(PATH, list, sha, 'calendar: upsert');
-    return ok({ id: item.id });
+    const input = JSON.parse(event.body || '{}');
+    if (!input.id) {
+      input.id = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+      input.createdAt = new Date().toISOString();
+    }
+    input.updatedAt = new Date().toISOString();
+
+    const { json, sha } = await readFileFromGit(repo, token, 'data/bookings.json');
+    const list = Array.isArray(json.bookings) ? json.bookings : [];
+    const i = list.findIndex((x) => x.id === input.id);
+    if (i === -1) list.unshift(input);
+    else list[i] = { ...list[i], ...input };
+
+    await writeFileToGit(repo, token, 'data/bookings.json', { bookings: list }, sha, 'Calendar: upsert');
+    return resp(200, { ok: true, id: input.id });
   } catch (e) {
-    return err(e.message);
+    return resp(500, { ok: false, error: String(e.message || e) });
   }
 };
+
+async function readFileFromGit(repo, token, path) {
+  const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const r = await fetch(api, { headers: { Authorization: `token ${token}`, 'User-Agent': 'netlify-fn' } });
+  if (!r.ok) throw new Error(`read ${path}: ${r.status}`);
+  const data = await r.json();
+  const content = Buffer.from(data.content, data.encoding).toString('utf8');
+  return { json: JSON.parse(content || '{}'), sha: data.sha };
+}
+async function writeFileToGit(repo, token, path, json, sha, message) {
+  const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const body = { message: message || `update ${path}`, content: Buffer.from(JSON.stringify(json, null, 2)).toString('base64'), sha };
+  const r = await fetch(api, { method: 'PUT', headers: { Authorization: `token ${token}`, 'User-Agent': 'netlify-fn', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`write ${path}: ${r.status}`);
+}
+function resp(status, json){ return { statusCode: status, headers:{'Content-Type':'application/json'}, body: JSON.stringify(json)} }
