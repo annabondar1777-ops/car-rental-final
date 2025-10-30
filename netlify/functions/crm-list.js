@@ -1,34 +1,24 @@
-// /netlify/functions/crm-list.js
 export const handler = async () => {
   try {
-    const REPO = process.env.REPO_FULL;     // например: annabondar1777-ops/car-rental-final
-    const BRANCH = process.env.BRANCH || "main";
-    const TOKEN = process.env.GITHUB_TOKEN;
-    const path = "data/clients.json";
+    const repo = process.env.REPO_FULL;
+    if (!repo) throw new Error('Missing REPO_FULL');
 
-    // читаем файл из GitHub
-    const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(path)}?ref=${BRANCH}`, {
-      headers: { Authorization: `Bearer ${TOKEN}`, Accept: "application/vnd.github+json" }
-    });
+    // читаем crm.json прямо из GitHub (без токена репо публичный)
+    const url = `https://raw.githubusercontent.com/${repo}/main/data/crm.json?ts=${Date.now()}`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`fetch crm.json: ${r.status}`);
+    const data = await r.json();
 
-    if (r.status === 404) {
-      // файла ещё нет — вернём пустой список
-      return resp({ ok: true, clients: [] });
-    }
-    if (!r.ok) {
-      const t = await r.text();
-      return resp({ ok: false, error: `GitHub read failed: ${r.status} ${t}` }, 502);
-    }
-
-    const j = await r.json();
-    const decoded = Buffer.from(j.content || "", "base64").toString("utf-8");
-    const clients = JSON.parse(decoded || "[]");
-    return resp({ ok: true, clients });
+    return resp(200, { ok: true, clients: Array.isArray(data.clients) ? data.clients : [] });
   } catch (e) {
-    return resp({ ok: false, error: String(e) }, 502);
+    return resp(500, { ok: false, error: String(e.message || e) });
   }
 };
 
-function resp(obj, status = 200) {
-  return { statusCode: status, headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) };
+function resp(status, json) {
+  return {
+    statusCode: status,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(json)
+  };
 }
