@@ -1,19 +1,17 @@
-const { getStore } = require('@netlify/blobs');
+import { readJsonFile, writeJsonFile, ok, err } from './_helpers.mjs';
+const PATH = 'data/bookings.json';
 
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST')
-    return { statusCode: 405, headers:{'Access-Control-Allow-Origin':'*'}, body: 'Method not allowed' };
-
+export const handler = async (evt) => {
+  if (evt.httpMethod !== 'POST') return err('Use POST');
   try {
-    const { id } = JSON.parse(event.body || '{}');
-    if (!id) return { statusCode: 400, headers:{'Access-Control-Allow-Origin':'*'}, body: 'id required' };
+    const { id } = JSON.parse(evt.body || '{}');
+    if (!id) return err('Missing id');
 
-    const store = getStore({ name: 'calendar' });
-    const data  = (await store.get('bookings', { type: 'json' })) || { bookings: [] };
-    await store.set('bookings', { bookings: data.bookings.filter(b => b.id !== id) }, { type: 'json' });
-
-    return { statusCode: 200, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:true }) };
+    const { data, sha } = await readJsonFile(PATH, []);
+    const list = (Array.isArray(data) ? data : []).filter(x => x.id !== id);
+    await writeJsonFile(PATH, list, sha, 'calendar: delete');
+    return ok({});
   } catch (e) {
-    return { statusCode: 500, headers:{'Access-Control-Allow-Origin':'*'}, body: JSON.stringify({ ok:false, error:e.message }) };
+    return err(e.message);
   }
 };
