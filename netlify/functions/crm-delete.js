@@ -1,55 +1,39 @@
-// /netlify/functions/crm-delete.js
 export const handler = async (event) => {
-  if (event.httpMethod !== "POST") return resp({ ok: false, error: "Use POST" }, 405);
-
   try {
-    const { id } = JSON.parse(event.body || "{}");
-    if (!id) return resp({ ok: false, error: "Missing id" }, 400);
+    if (event.httpMethod !== 'POST') return resp(405, { ok: false, error: 'Use POST' });
 
-    const REPO = process.env.REPO_FULL;
-    const BRANCH = process.env.BRANCH || "main";
-    const TOKEN = process.env.GITHUB_TOKEN;
-    const path = "data/clients.json";
+    const repo = process.env.REPO_FULL;
+    const token = process.env.GITHUB_TOKEN;
+    if (!repo || !token) throw new Error('Missing REPO_FULL or GITHUB_TOKEN');
 
-    // читаем файл
-    const get = await fetch(`https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(path)}?ref=${BRANCH}`, {
-      headers: { Authorization: `Bearer ${TOKEN}`, Accept: "application/vnd.github+json" }
-    });
+    const { id } = JSON.parse(event.body || '{}');
+    if (!id) return resp(400, { ok: false, error: 'id required' });
 
-    if (get.status === 404) return resp({ ok: true }); // нечего удалять
-    if (!get.ok) {
-      const t = await get.text();
-      return resp({ ok: false, error: `GitHub read failed: ${get.status} ${t}` }, 502);
-    }
+    const { json, sha } = await readFileFromGit(repo, token, 'data/crm.json');
+    const list = Array.isArray(json.clients) ? json.clients : [];
+    const newList = list.filter((x) => x.id !== id);
 
-    const jj = await get.json();
-    const sha = jj.sha;
-    const decoded = Buffer.from(jj.content || "", "base64").toString("utf-8");
-    const list = JSON.parse(decoded || "[]").filter((x) => x.id !== id);
+    await writeFileToGit(repo, token, 'data/crm.json', { clients: newList }, sha, `CRM: delete ${id}`);
 
-    const newContent = Buffer.from(JSON.stringify(list, null, 2), "utf-8").toString("base64");
-    const put = await fetch(`https://api.github.com/repos/${REPO}/contents/${encodeURIComponent(path)}`, {
-      method: "PUT",
-      headers: { Authorization: `Bearer ${TOKEN}`, Accept: "application/vnd.github+json" },
-      body: JSON.stringify({
-        message: `delete client ${id}`,
-        content: newContent,
-        branch: BRANCH,
-        sha
-      })
-    });
-
-    if (!put.ok) {
-      const t = await put.text();
-      return resp({ ok: false, error: `GitHub write failed: ${put.status} ${t}` }, 502);
-    }
-
-    return resp({ ok: true });
+    return resp(200, { ok: true });
   } catch (e) {
-    return resp({ ok: false, error: String(e) }, 502);
+    return resp(500, { ok: false, error: String(e.message || e) });
   }
 };
 
-function resp(obj, status = 200) {
-  return { statusCode: status, headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj) };
+// те же утилиты, что выше
+async function readFileFromGit(repo, token, path) {
+  const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const r = await fetch(api, { headers: { Authorization: `token ${token}`, 'User-Agent': 'netlify-fn' } });
+  if (!r.ok) throw new Error(`read ${path}: ${r.status}`);
+  const data = await r.json();
+  const content = Buffer.from(data.content, data.encoding).toString('utf8');
+  return { json: JSON.parse(content || '{}'), sha: data.sha };
 }
+async function writeFileToGit(repo, token, path, json, sha, message) {
+  const api = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}`;
+  const body = { message: message || `update ${path}`, content: Buffer.from(JSON.stringify(json, null, 2)).toString('base64'), sha };
+  const r = await fetch(api, { method: 'PUT', headers: { Authorization: `token ${token}`, 'User-Agent': 'netlify-fn', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`write ${path}: ${r.status}`);
+}
+function resp(status, json) { return { statusCode: status, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json) }; }
