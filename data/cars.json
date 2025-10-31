@@ -1,22 +1,6 @@
 {
   "cars": [
     {
-      "id": "id_mlo7bed",
-      "name": {
-        "ru": "MERCEDES-BENZ"
-      },
-      "description": {
-        "ru": "4-10  Days=50 Euro\n10-20 Days=45 Euro"
-      },
-      "year": "2017",
-      "transmission": "Automat",
-      "fuel": "Benzin/Plagh-in/Hybrid",
-      "price_per_day": "70 Euro",
-      "bookable": true,
-      "published": true,
-      "images": []
-    },
-    {
       "id": "id_fffs90q",
       "name": {
         "ru": "MERCEDES-BENZ GLS"
