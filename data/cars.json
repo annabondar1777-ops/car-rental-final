@@ -1,23 +1,20 @@
 {
   "cars": [
     {
-      "id": "id_dqf1qma",
+      "id": "id_mlo7bed",
       "name": {
-        "ru": "BMW X5"
+        "ru": "MERCEDES-BENZ"
       },
       "description": {
-        "ru": "4-10 days = 95 euro"
+        "ru": "4-10  Days=50 Euro\n10-20 Days=45 Euro"
       },
-      "year": "1018",
-      "transmission": "automat",
-      "fuel": "diesel",
-      "price_per_day": "100",
+      "year": "2017",
+      "transmission": "Automat",
+      "fuel": "Benzin/Plagh-in/Hybrid",
+      "price_per_day": "70 Euro",
       "bookable": true,
       "published": true,
-      "images": [
-        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761826653171_IMG_8956.jpeg",
-        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202510/1761826653980_IMG_8966.jpeg"
-      ]
+      "images": []
     }
   ]
 }
