@@ -59,6 +59,26 @@
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164031590_IMG_4596.jpeg",
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164043758_IMG_4598.jpeg"
       ]
+    },
+    {
+      "id": "id_rnbjs6j",
+      "name": {
+        "ru": "TOYOTA Rav-4"
+      },
+      "description": {
+        "ru": "4-10 days = 50 euro\n10-20 days = 45 euro"
+      },
+      "year": "2023",
+      "transmission": "automat",
+      "fuel": "benzin",
+      "price_per_day": "60",
+      "bookable": true,
+      "published": true,
+      "images": [
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164233894_IMG_4408.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164242138_IMG_4409.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164242712_IMG_4410.jpeg"
+      ]
     }
   ]
 }
