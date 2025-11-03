@@ -119,6 +119,26 @@
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164952496_IMG_2675.jpg",
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164963321_IMG_2693.jpg"
       ]
+    },
+    {
+      "id": "id_7euqkd3",
+      "name": {
+        "ru": "WOLKSWAGEN Jetta"
+      },
+      "description": {
+        "ru": "4-10 days = 35 euro\n10-20 days = 30 euro"
+      },
+      "year": "2020",
+      "transmission": "automat",
+      "fuel": "benzin",
+      "price_per_day": "45",
+      "bookable": true,
+      "published": true,
+      "images": [
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762165103314_IMG_4569.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762165129692_IMG_4570.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762165139812_IMG_4571.jpeg"
+      ]
     }
   ]
 }
