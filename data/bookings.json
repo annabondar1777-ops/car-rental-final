@@ -1,3 +1,15 @@
-{
-  "bookings": []
-}
+[
+  {
+    "id": "mhjizmu7-id_uebhpa8",
+    "name": "Hanna",
+    "phone": "0771503939",
+    "car_id": "id_uebhpa8",
+    "car": "BMW X5",
+    "date_from": "2025-11-10",
+    "date_to": "2025-11-13",
+    "status": "new",
+    "comment": "Test",
+    "updatedAt": "2025-11-03T19:21:06.062Z",
+    "createdAt": "2025-11-03T19:21:06.062Z"
+  }
+]
