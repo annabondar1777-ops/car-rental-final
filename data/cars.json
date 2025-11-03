@@ -1,20 +1,24 @@
 {
   "cars": [
     {
-      "id": "id_fffs90q",
+      "id": "id_4ave56r",
       "name": {
-        "ru": "MERCEDES-BENZ GLS"
+        "ru": "MERSEDES BENZ GLC"
       },
       "description": {
-        "ru": "4-10  Days=50 Euro\n10-20 Days=45 Euro"
+        "ru": "4-10 days = 50\n10-20 days =40"
       },
       "year": "2017",
-      "transmission": "Automat",
-      "fuel": "Benzin/Plagh-in/Hybrid",
-      "price_per_day": "70 Euro",
+      "transmission": "automat",
+      "fuel": "benzin /plaghin / hibrid",
+      "price_per_day": "60",
       "bookable": true,
       "published": true,
-      "images": []
+      "images": [
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762161451534_IMG_8215.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762161452754_IMG_8216.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762161454072_IMG_8217.jpeg"
+      ]
     }
   ]
 }
