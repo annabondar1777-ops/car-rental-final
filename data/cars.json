@@ -39,6 +39,26 @@
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762163758134_IMG_8966.jpeg",
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762163773315_3a238a18-3ae7-4ffa-94d1-85323e00a65f.jpeg"
       ]
+    },
+    {
+      "id": "id_xhek3mk",
+      "name": {
+        "ru": "AUDI Q5"
+      },
+      "description": {
+        "ru": "4-10 days = 50 euro\n10-20 days = 45 euro"
+      },
+      "year": "2017",
+      "transmission": "automat",
+      "fuel": "benzin",
+      "price_per_day": "60",
+      "bookable": true,
+      "published": true,
+      "images": [
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164013731_IMG_4594.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164031590_IMG_4596.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762164043758_IMG_4598.jpeg"
+      ]
     }
   ]
 }
