@@ -1,15 +1,3 @@
-[
-  {
-    "id": "mhelt5wu-id_fffs90q",
-    "name": "Hanna Torhan",
-    "phone": "0771503939",
-    "car_id": "id_fffs90q",
-    "car": "MERCEDES-BENZ GLS",
-    "date_from": "2025-09-11",
-    "date_to": "2025-12-11",
-    "status": "new",
-    "comment": "test",
-    "updatedAt": "2025-10-31T08:41:11.465Z",
-    "createdAt": "2025-10-31T08:41:11.465Z"
-  }
-]
+{
+  "bookings": []
+}
