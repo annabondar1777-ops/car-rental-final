@@ -159,6 +159,26 @@
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762163758134_IMG_8966.jpeg",
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762163773315_3a238a18-3ae7-4ffa-94d1-85323e00a65f.jpeg"
       ]
+    },
+    {
+      "id": "id_fmqfm5c",
+      "name": {
+        "ru": "BMW X5"
+      },
+      "description": {
+        "ru": "4-10 days = 80 euro\n10-20 days = 60 euro"
+      },
+      "year": "2018",
+      "transmission": "automat",
+      "fuel": "diesel",
+      "price_per_day": "100",
+      "bookable": true,
+      "published": true,
+      "images": [
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762163747008_IMG_8956.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762163758134_IMG_8966.jpeg",
+        "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762169690813_GetAttachmentThumbnail.jpg"
+      ]
     }
   ]
 }
