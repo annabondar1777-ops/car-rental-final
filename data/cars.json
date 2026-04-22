@@ -159,6 +159,22 @@
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762163758134_IMG_8966.jpeg",
         "https://raw.githubusercontent.com/annabondar1777-ops/car-rental-final/main/assets/cars/202511/1762169690813_GetAttachmentThumbnail.jpg"
       ]
+    },
+    {
+      "id": "id_powue69",
+      "name": {
+        "ru": ""
+      },
+      "description": {
+        "ru": ""
+      },
+      "year": "",
+      "transmission": "",
+      "fuel": "",
+      "price_per_day": "",
+      "bookable": true,
+      "published": true,
+      "images": []
     }
   ]
 }
