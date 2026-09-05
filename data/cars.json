@@ -1,22 +1,6 @@
 {
   "cars": [
     {
-      "id": "id_k8lvby4",
-      "name": {
-        "ru": ""
-      },
-      "description": {
-        "ru": ""
-      },
-      "year": "",
-      "transmission": "",
-      "fuel": "",
-      "price_per_day": "",
-      "bookable": true,
-      "published": true,
-      "images": []
-    },
-    {
       "id": "id_ecbyzim",
       "name": {
         "ru": ""
