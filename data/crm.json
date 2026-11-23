@@ -1,3 +1,17 @@
 {
-  "clients": []
+  "clients": [
+    {
+      "id": "mwtq4niz-nb3v",
+      "name": "Anton Novak",
+      "phone": "+12015550123",
+      "email": "anton@touristpeak.com",
+      "car": "",
+      "date_from": "",
+      "date_to": "",
+      "status": "new",
+      "comment": "Hi,\n\nEarlier I sent you an offer to add you to the Tourist catalog.\nAs a reminder, the quick registration link is touristpeak.com\nBeing listed in the catalog is free!",
+      "createdAt": "2026-11-23T20:34:11.099Z",
+      "updatedAt": "2026-11-23T20:34:11.101Z"
+    }
+  ]
 }
