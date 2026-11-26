@@ -1,6 +1,19 @@
 {
   "clients": [
     {
+      "id": "mwxsdssu-mrtd",
+      "name": "Anton Novak",
+      "phone": "+12015550123",
+      "email": "anton@touristpeak.com",
+      "car": "",
+      "date_from": "",
+      "date_to": "",
+      "status": "new",
+      "comment": "Hi,\n\nI wrote to you a few days ago through your contact form. This is a short follow-up. I would like to add rentcar-centru.com to Tourist. It is a catalogue of travel offers. There is no cost and no commission. Guests book directly with you.\n\nWrite \"yes\" to anton@touristpeak.com and I will set it up for you. Or add it yourself here: touristpeak.com\n\nNot interested? Say so and I'll leave it there.\n\nBest regards,\nAnton\nTourist",
+      "createdAt": "2026-11-26T16:48:21.774Z",
+      "updatedAt": "2026-11-26T16:48:21.777Z"
+    },
+    {
       "id": "mwtq4niz-nb3v",
       "name": "Anton Novak",
       "phone": "+12015550123",
